@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>우리 차 어디있지?</title>
 
-<!-- PWA 메타태그 (상단 주소창 없는 전체화면 앱 설정) -->
+<!-- PWA 메타태그 (전체화면 앱 실행) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -99,7 +99,6 @@
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
   }
 
-  /* 귀가 추천 뱃지 */
   .recommend-badge {
     background: rgba(56, 189, 248, 0.12);
     border: 1px solid #0284c7;
@@ -114,7 +113,6 @@
     gap: 6px;
   }
 
-  /* 지도 카드 */
   .map-card {
     background: #0d1322;
     border: 1.5px solid var(--card-border);
@@ -147,50 +145,87 @@
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* 주차 상태 카드 */
+  /* --- 개선된 주차 상태 카드 --- */
   .status-card {
     background: var(--card-dark);
     border: 1px solid var(--card-border);
     border-radius: 18px;
-    padding: 16px;
+    padding: 18px;
     margin-top: 14px;
   }
-  .status-main {
+  .status-label-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--card-border);
-    padding-bottom: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
-  .status-pos {
-    font-size: 24px;
-    font-weight: 800;
-  }
-  .status-pos small {
-    font-size: 14px;
-    color: var(--accent-blue);
-    margin-left: 6px;
+  .status-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
   }
   .status-badge-user {
     background: #1e293b;
     border: 1px solid #334155;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: #cbd5e1;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #e2e8f0;
   }
-  .status-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+
+  /* 층수 맨 앞 + 위치 표시 행 */
+  .status-main-row {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    font-size: 12px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 14px;
+    margin-bottom: 12px;
+  }
+  .floor-badge {
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 4px 9px;
+    border-radius: 8px;
+    letter-spacing: -0.2px;
+    flex-shrink: 0;
+  }
+  .status-pos-text {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    word-break: break-all;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  /* 상세 안내 그리드 */
+  .status-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
     color: var(--text-muted);
     margin-bottom: 10px;
   }
-  .status-details strong { color: #f1f5f9; }
+  .status-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .status-detail-item strong {
+    color: #f1f5f9;
+    font-weight: 600;
+    text-align: right;
+  }
 
-  /* 사진 미리보기 (터치 시 확대) */
+  /* 사진 미리보기 */
   .photo-preview-wrap {
     margin-top: 10px;
     border-radius: 12px;
@@ -218,7 +253,6 @@
     border-radius: 4px;
   }
 
-  /* 카카오톡 공유 버튼 */
   .kakao-share-btn {
     width: 100%;
     padding: 13px;
@@ -372,7 +406,6 @@
     cursor: pointer;
   }
 
-  /* 전체화면 사진 라이트박스 */
   #lightboxOverlay {
     display: none;
     position: fixed;
@@ -392,7 +425,6 @@
 <body>
 
 <div class="mobile-container">
-  <!-- 상단 헤더 -->
   <div class="header">
     <div class="header-left">
       <h1>힐스테이트푸르지오주안 110동</h1>
@@ -401,18 +433,15 @@
     <button class="refresh-btn" onclick="fetchParkingData()">🔄 새로고침</button>
   </div>
 
-  <!-- 층수 탭 -->
   <div class="floor-toggle">
     <div class="floor-tab active" id="tab-B2" onclick="switchFloor('지하 2층')">지하 2층 (B2)</div>
     <div class="floor-tab" id="tab-B3" onclick="switchFloor('지하 3층')">지하 3층 (B3)</div>
   </div>
 
-  <!-- 추천 엘리베이터 안내 뱃지 -->
   <div class="recommend-badge" id="recommendBadge">
     <span>💡</span> <span id="recommendText">등록된 주차 위치를 확인 중입니다...</span>
   </div>
 
-  <!-- 인터랙티브 지도 -->
   <div class="map-card">
     <div class="map-caption">💡 구역(A, B, C)을 터치하면 바로 주차 위치를 등록할 수 있습니다</div>
 
@@ -426,7 +455,6 @@
         </filter>
       </defs>
 
-      <!-- 외곽선 -->
       <rect x="10" y="10" width="380" height="300" rx="14" fill="#0b1120" stroke="#1e293b" stroke-width="2" />
 
       <!-- A 구역 -->
@@ -455,7 +483,7 @@
       <line x1="172" y1="170" x2="172" y2="120" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
       <line x1="175" y1="168" x2="225" y2="168" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
 
-      <!-- 엘리베이터 1호 EV, 2호 EV -->
+      <!-- EV 홀 -->
       <g transform="translate(160, 185)">
         <rect x="0" y="0" width="34" height="30" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6" />
         <text x="17" y="19" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">1호 EV</text>
@@ -472,7 +500,6 @@
         <text x="15" y="9" fill="#f87171" font-size="9.5" font-weight="bold">무인택배함</text>
       </g>
 
-      <!-- 🚗 차량 핀 -->
       <g id="svg-car-marker" style="display: none;">
         <circle cx="0" cy="0" r="16" fill="#2563eb" stroke="#38bdf8" stroke-width="2" filter="url(#glow-badge)" />
         <text x="0" y="5" font-size="14" text-anchor="middle">🚗</text>
@@ -480,30 +507,34 @@
     </svg>
   </div>
 
-  <!-- 주차 상태 카드 -->
+  <!-- 주차 상태 카드 (개선된 레이아웃) -->
   <div class="status-card">
-    <div class="status-main">
-      <div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">현재 주차된 위치</div>
-        <div class="status-pos">
-          <span id="display-pos">-</span>
-          <small id="display-floor">지하 2층</small>
-        </div>
+    <div class="status-label-row">
+      <span class="status-label">현재 주차된 위치</span>
+      <span class="status-badge-user" id="display-user">등록자: -</span>
+    </div>
+
+    <!-- 층수 뱃지 맨 앞 + 구역/기둥 텍스트 -->
+    <div class="status-main-row">
+      <span class="floor-badge" id="display-floor-badge">B2</span>
+      <div class="status-pos-text" id="display-pos">-</div>
+    </div>
+
+    <div class="status-details-grid">
+      <div class="status-detail-item">
+        <span>빠른 출구</span>
+        <strong id="display-exit">-</strong>
       </div>
-      <div class="status-badge-user" id="display-user">등록자: -</div>
+      <div class="status-detail-item">
+        <span>업데이트</span>
+        <strong id="display-time">-</strong>
+      </div>
     </div>
 
-    <div class="status-details">
-      <span>빠른 출구: <strong id="display-exit">-</strong></span>
-      <span>업데이트: <strong id="display-time">-</strong></span>
-    </div>
-
-    <!-- 첨부된 사진 -->
     <div class="photo-preview-wrap" id="mainPhotoWrap" onclick="openLightbox()">
       <img id="mainPhotoImg" src="" alt="주차 위치 사진">
     </div>
 
-    <!-- 카카오톡 원클릭 위치 공유 버튼 -->
     <button class="kakao-share-btn" onclick="shareToKakao()">
       💬 카카오톡으로 주차 위치 보내기
     </button>
@@ -514,12 +545,11 @@
   </div>
 </div>
 
-<!-- 사진 전체화면 확대 라이트박스 -->
 <div id="lightboxOverlay" onclick="this.style.display='none'">
   <img id="lightboxImg" src="">
 </div>
 
-<!-- 등록 모달 -->
+<!-- 모달 -->
 <div id="registerModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -557,7 +587,7 @@
 </div>
 
 <script>
-  // ▼▼▼ 본인의 구글 웹앱 URL(https://script.google.com/macros/s/.../exec)을 아래 따옴표 안에 넣어주세요 ▼▼▼
+  // ▼▼▼ 본인 구글 웹앱 URL 확인 ▼▼▼
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxRDQ4C9HC47rSSgaKpfON4WfP2vI0gymwcVCd2dn_CtaOBsDJHkSwCDgNWIJpUckLEwQ/exec";
 
   const zoneExitGuides = {
@@ -588,7 +618,6 @@
     fetchParkingData();
   };
 
-  // GitHub Pages에서 구글 시트 데이터 읽기 (GET)
   function fetchParkingData() {
     fetch(GAS_URL)
       .then(res => res.json())
@@ -605,17 +634,20 @@
 
     switchFloor(currentFloor);
 
-    document.getElementById("display-pos").innerText = (data.zone && data.pillar) ? `${data.zone}구역 · ${data.pillar}` : "미등록";
-    document.getElementById("display-floor").innerText = currentFloor;
+    // 층수 뱃지 텍스트 (지하 2층 -> B2)
+    const floorShort = currentFloor.includes("3") ? "B3" : "B2";
+    document.getElementById("display-floor-badge").innerText = floorShort;
+
+    // 위치 텍스트: C구역 · r1112/최고멋쟁이
+    document.getElementById("display-pos-text").innerText = (data.zone && data.pillar) ? `${data.zone}구역 · ${data.pillar}` : "미등록";
+    
     document.getElementById("display-user").innerText = "등록자: " + (data.updatedBy || "-");
     document.getElementById("display-exit").innerText = zoneExitGuides[data.zone] || "-";
     document.getElementById("display-time").innerText = data.updatedAt || "-";
 
-    // 귀가 엘리베이터 추천 뱃지
     const recText = zoneEvRecommendation[data.zone] || "귀가 시 편한 엘리베이터를 이용하세요.";
     document.getElementById("recommendText").innerText = recText;
 
-    // 사진 렌더링
     const photoWrap = document.getElementById("mainPhotoWrap");
     const photoImg = document.getElementById("mainPhotoImg");
     if (data.photo && data.photo.length > 30) {
@@ -626,7 +658,6 @@
       photoWrap.style.display = "none";
     }
 
-    // 지도 상 활성화 구역 강조 및 🚗 마커 표시
     document.querySelectorAll(".zone-interactive").forEach(el => el.classList.remove("active"));
     const marker = document.getElementById("svg-car-marker");
 
@@ -646,7 +677,6 @@
     currentFloor = floor;
     document.getElementById("tab-B2").classList.toggle("active", floor === "지하 2층");
     document.getElementById("tab-B3").classList.toggle("active", floor === "지하 3층");
-    document.getElementById("display-floor").innerText = floor;
   }
 
   function openRegisterModal(zone) {
@@ -680,7 +710,6 @@
     document.getElementById("user-btn-wife").classList.toggle("active", user === "와이프");
   }
 
-  // 사진 압축
   function handlePhotoUpload(input) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
@@ -719,7 +748,6 @@
     reader.readAsDataURL(file);
   }
 
-  // GitHub Pages에서 구글 시트로 주차 정보 전송 (POST)
   function submitParkingData() {
     const pillarInput = document.getElementById("inputPillar").value.trim();
     if (!pillarInput) {
@@ -751,14 +779,12 @@
       fetchParkingData();
     })
     .catch(err => {
-      alert("저장 성공 또는 데이터 갱신 완료!");
       closeModal();
       btn.disabled = false;
       fetchParkingData();
     });
   }
 
-  // 카카오톡 원클릭 위치 공유
   function shareToKakao() {
     if (!currentPillar) {
       alert("등록된 주차 위치가 없습니다.");
@@ -766,7 +792,6 @@
     }
     const message = `[힐스테이트푸르지오주안 110동]\n🚗 차 위치: ${currentFloor} ${currentZone}구역 [${currentPillar}]\n💡 출구: ${zoneExitGuides[currentZone]}\n📱 주차 앱 확인하기:\n${window.location.href}`;
     
-    // 모바일 카카오톡 앱 바로 띄우기 (또는 클립보드 복사)
     if (navigator.share) {
       navigator.share({
         title: '주차 위치 공유',
@@ -779,7 +804,6 @@
     }
   }
 
-  // 사진 확대
   function openLightbox() {
     document.getElementById("lightboxOverlay").style.display = "flex";
   }
