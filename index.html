@@ -575,8 +575,8 @@
 
     <div class="picker-section-title">주차자</div>
     <div class="user-toggle">
-      <button class="user-btn active" id="user-btn-me" onclick="selectUser('남편')">남편</button>
-      <button class="user-btn" id="user-btn-wife" onclick="selectUser('와이프')">와이프</button>
+      <button class="user-btn active" id="user-btn-me" onclick="selectUser('근수')">근수</button>
+      <button class="user-btn" id="user-btn-wife" onclick="selectUser('효진')">효진</button>
     </div>
 
     <button id="saveSubmitBtn" class="submit-btn" onclick="submitParkingData()">
@@ -609,7 +609,7 @@
   let currentFloor = "지하 2층";
   let currentZone = "A";
   let currentPillar = "";
-  let selectedUser = "남편";
+  let selectedUser = "근수";
   let currentBase64Photo = "";
 
   window.onload = function() {
@@ -709,8 +709,8 @@
 
   function selectUser(user) {
     selectedUser = user;
-    document.getElementById("user-btn-me").classList.toggle("active", user === "남편");
-    document.getElementById("user-btn-wife").classList.toggle("active", user === "와이프");
+    document.getElementById("user-btn-me").classList.toggle("active", user === "근수");
+    document.getElementById("user-btn-wife").classList.toggle("active", user === "효진");
   }
 
   function handlePhotoUpload(input) {
