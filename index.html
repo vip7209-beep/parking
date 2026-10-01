@@ -145,7 +145,7 @@
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* --- 개선된 주차 상태 카드 --- */
+  /* 주차 상태 카드 */
   .status-card {
     background: var(--card-dark);
     border: 1px solid var(--card-border);
@@ -174,7 +174,6 @@
     color: #e2e8f0;
   }
 
-  /* 층수 맨 앞 + 위치 표시 행 */
   .status-main-row {
     display: flex;
     align-items: center;
@@ -204,7 +203,6 @@
     min-width: 180px;
   }
 
-  /* 상세 안내 그리드 */
   .status-details-grid {
     display: flex;
     flex-direction: column;
@@ -507,7 +505,7 @@
     </svg>
   </div>
 
-  <!-- 주차 상태 카드 (개선된 레이아웃) -->
+  <!-- 주차 상태 카드 -->
   <div class="status-card">
     <div class="status-label-row">
       <span class="status-label">현재 주차된 위치</span>
@@ -587,7 +585,7 @@
 </div>
 
 <script>
-  // ▼▼▼ 본인 구글 웹앱 URL 확인 ▼▼▼
+  // 지정해 주신 웹앱 URL 적용 완료
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxRDQ4C9HC47rSSgaKpfON4WfP2vI0gymwcVCd2dn_CtaOBsDJHkSwCDgNWIJpUckLEwQ/exec";
 
   const zoneExitGuides = {
@@ -634,11 +632,8 @@
 
     switchFloor(currentFloor);
 
-    // 층수 뱃지 텍스트 (지하 2층 -> B2)
     const floorShort = currentFloor.includes("3") ? "B3" : "B2";
     document.getElementById("display-floor-badge").innerText = floorShort;
-
-    // 위치 텍스트: C구역 · r1112/최고멋쟁이
     document.getElementById("display-pos-text").innerText = (data.zone && data.pillar) ? `${data.zone}구역 · ${data.pillar}` : "미등록";
     
     document.getElementById("display-user").innerText = "등록자: " + (data.updatedBy || "-");
