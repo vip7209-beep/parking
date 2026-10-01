@@ -174,6 +174,7 @@
     color: #e2e8f0;
   }
 
+  /* 층수 뱃지 맨 앞 + 구역/기둥 텍스트 */
   .status-main-row {
     display: flex;
     align-items: center;
@@ -515,7 +516,7 @@
     <!-- 층수 뱃지 맨 앞 + 구역/기둥 텍스트 -->
     <div class="status-main-row">
       <span class="floor-badge" id="display-floor-badge">B2</span>
-      <div class="status-pos-text" id="display-pos">-</div>
+      <div class="status-pos-text" id="display-pos-text">-</div>
     </div>
 
     <div class="status-details-grid">
@@ -585,7 +586,6 @@
 </div>
 
 <script>
-  // 지정해 주신 웹앱 URL 적용 완료
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxRDQ4C9HC47rSSgaKpfON4WfP2vI0gymwcVCd2dn_CtaOBsDJHkSwCDgNWIJpUckLEwQ/exec";
 
   const zoneExitGuides = {
@@ -616,11 +616,19 @@
     fetchParkingData();
   };
 
+  // JSONP 방식으로 구글 시트 데이터 로드 (CORS/리다이렉트 완전 우회)
   function fetchParkingData() {
-    fetch(GAS_URL)
-      .then(res => res.json())
-      .then(data => renderParkingStatus(data))
-      .catch(err => console.error("데이터 조회 에러:", err));
+    const oldScript = document.getElementById("jsonp-script");
+    if (oldScript) oldScript.remove();
+
+    window.handleParkingDataResponse = function(data) {
+      renderParkingStatus(data);
+    };
+
+    const script = document.createElement("script");
+    script.id = "jsonp-script";
+    script.src = `${GAS_URL}?callback=handleParkingDataResponse&_=${new Date().getTime()}`;
+    document.body.appendChild(script);
   }
 
   function renderParkingStatus(data) {
