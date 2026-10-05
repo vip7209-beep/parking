@@ -3,21 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>우리 차 어디있지?</title>
 
-<!-- ▼▼▼ 1. 앱 이름 설정 ▼▼▼ -->
-<title>뽀띠위치</title>
-
-<!-- ▼▼▼ 2. 방금 올린 핑크돼지 아이콘 연결 (여기에 들어갑니다!) ▼▼▼ -->
-<!-- ▼ 핑크돼지 아이콘 연결 (캐시 방지 ?v=2 추가) ▼ -->
-<link rel="apple-touch-icon" sizes="512x512" href="./apple-touch-icon.png?v=2">
-<link rel="icon" type="image/png" sizes="512x512" href="./apple-touch-icon.png?v=2">
-<meta property="og:image" content="./apple-touch-icon.png?v=2">
-
-<!-- PWA 메타태그 (전체화면 앱 실행) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#090d16">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
 
 <style>
   :root {
@@ -65,7 +58,6 @@
     font-size: 19px;
     font-weight: 700;
     margin: 0 0 4px 0;
-    letter-spacing: -0.4px;
   }
   .header-left p {
     font-size: 12px;
@@ -136,11 +128,32 @@
     margin-bottom: 8px;
   }
 
-  svg text { user-select: none; }
-  .zone-interactive {
-    cursor: pointer;
-    transition: all 0.2s ease;
+  /* 뷰 모드 전환 버튼들 */
+  .view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 4px;
   }
+  .ctrl-btn {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ctrl-btn.active {
+    background: #f59e0b;
+    color: #0f172a;
+    border-color: #fbbf24;
+  }
+
+  svg text { user-select: none; }
+  .zone-interactive { cursor: pointer; transition: all 0.2s ease; }
   .zone-interactive:hover { filter: brightness(1.2); }
   .zone-interactive.active rect {
     stroke-width: 3px;
@@ -149,8 +162,20 @@
     filter: drop-shadow(0 0 10px var(--accent-glow));
   }
 
-  #svg-car-marker {
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 상세 평면도 주차 칸 스타일 */
+  .spot-rect {
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .spot-rect:hover {
+    stroke: var(--accent-blue);
+    stroke-width: 2px;
+  }
+  .spot-rect.car-parked {
+    fill: #2563eb !important;
+    stroke: #38bdf8 !important;
+    stroke-width: 2.5px !important;
+    filter: drop-shadow(0 0 8px var(--accent-glow));
   }
 
   /* 주차 상태 카드 */
@@ -167,11 +192,7 @@
     align-items: center;
     margin-bottom: 8px;
   }
-  .status-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
+  .status-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
   .status-badge-user {
     background: #1e293b;
     border: 1px solid #334155;
@@ -182,7 +203,6 @@
     color: #e2e8f0;
   }
 
-  /* 층수 뱃지 맨 앞 + 구역/기둥 텍스트 */
   .status-main-row {
     display: flex;
     align-items: center;
@@ -199,7 +219,6 @@
     font-weight: 800;
     padding: 4px 9px;
     border-radius: 8px;
-    letter-spacing: -0.2px;
     flex-shrink: 0;
   }
   .status-pos-text {
@@ -207,9 +226,7 @@
     font-weight: 800;
     color: #ffffff;
     word-break: break-all;
-    line-height: 1.3;
     flex: 1;
-    min-width: 180px;
   }
 
   .status-details-grid {
@@ -226,13 +243,8 @@
     align-items: flex-start;
     gap: 8px;
   }
-  .status-detail-item strong {
-    color: #f1f5f9;
-    font-weight: 600;
-    text-align: right;
-  }
+  .status-detail-item strong { color: #f1f5f9; font-weight: 600; }
 
-  /* 사진 미리보기 */
   .photo-preview-wrap {
     margin-top: 10px;
     border-radius: 12px;
@@ -242,12 +254,7 @@
     cursor: pointer;
     position: relative;
   }
-  .photo-preview-wrap img {
-    width: 100%;
-    max-height: 220px;
-    object-fit: cover;
-    display: block;
-  }
+  .photo-preview-wrap img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
   .photo-preview-wrap::after {
     content: "🔍 터치하여 원본 사진 확대";
     position: absolute;
@@ -291,7 +298,7 @@
     margin-top: 8px;
   }
 
-  /* 모달 */
+  /* 모달 팝업 */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -333,13 +340,6 @@
     cursor: pointer;
   }
 
-  .picker-section-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-muted);
-    margin: 14px 0 8px;
-  }
-  
   .text-input {
     width: 100%;
     background: #090d16;
@@ -349,6 +349,7 @@
     font-size: 16px;
     color: #fff;
     outline: none;
+    margin-bottom: 12px;
   }
   .text-input:focus { border-color: var(--accent-blue); }
 
@@ -367,10 +368,7 @@
     align-items: center;
     gap: 8px;
   }
-  .camera-btn.has-photo {
-    border-color: #22c55e;
-    color: #4ade80;
-  }
+  .camera-btn.has-photo { border-color: #22c55e; color: #4ade80; }
 
   .modal-photo-preview {
     margin-top: 10px;
@@ -382,7 +380,7 @@
     border: 1px solid #334155;
   }
 
-  .user-toggle { display: flex; gap: 10px; }
+  .user-toggle { display: flex; gap: 10px; margin-bottom: 14px; }
   .user-btn {
     flex: 1;
     background: #090d16;
@@ -394,15 +392,10 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .user-btn.active {
-    background: #1e293b;
-    color: white;
-    border-color: #64748b;
-  }
+  .user-btn.active { background: #1e293b; color: white; border-color: #64748b; }
 
   .submit-btn {
     width: 100%;
-    margin-top: 20px;
     padding: 14px;
     background: #22c55e;
     border: none;
@@ -422,11 +415,7 @@
     justify-content: center;
     align-items: center;
   }
-  #lightboxOverlay img {
-    max-width: 94%;
-    max-height: 85%;
-    border-radius: 10px;
-  }
+  #lightboxOverlay img { max-width: 94%; max-height: 85%; border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -449,69 +438,104 @@
     <span>💡</span> <span id="recommendText">등록된 주차 위치를 확인 중입니다...</span>
   </div>
 
+  <!-- 지도 카드 -->
   <div class="map-card">
-    <div class="map-caption">💡 구역(A, B, C)을 터치하면 바로 주차 위치를 등록할 수 있습니다</div>
+    <div class="view-controls">
+      <span id="mapViewTitle" style="font-size:13px; font-weight:700; color:#38bdf8;">🗺 전체 조망 안내도</span>
+      <div>
+        <button id="backToMainBtn" class="ctrl-btn" style="display:none;" onclick="showMainMap()">⬅ 전체지도</button>
+        <button id="toggleEditBtn" class="ctrl-btn" style="display:none;" onclick="toggleEditMode()">🛠 도면 편집</button>
+      </div>
+    </div>
 
-    <svg viewBox="0 0 400 320" style="width: 100%; height: auto; display: block;">
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
-        </marker>
-        <filter id="glow-badge" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
-        </filter>
-      </defs>
+    <!-- 1. 메인 전체 안내도 SVG -->
+    <div id="mainMapWrapper">
+      <div class="map-caption">💡 A구역을 터치하면 상세 주차칸 평면도가 열립니다</div>
+      <svg viewBox="0 0 400 320" style="width: 100%; height: auto; display: block;">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
+          </marker>
+          <filter id="glow-badge" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+          </filter>
+        </defs>
 
-      <rect x="10" y="10" width="380" height="300" rx="14" fill="#0b1120" stroke="#1e293b" stroke-width="2" />
+        <rect x="10" y="10" width="380" height="300" rx="14" fill="#0b1120" stroke="#1e293b" stroke-width="2" />
 
-      <!-- A 구역 -->
-      <g id="svg-zone-A" class="zone-interactive" onclick="openRegisterModal('A')">
-        <rect x="85" y="24" width="165" height="78" rx="10" fill="rgba(239, 68, 68, 0.08)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5 3" />
-        <text x="167" y="60" fill="#f87171" font-size="20" font-weight="900" text-anchor="middle">A 구역</text>
-        <text x="167" y="80" fill="#94a3b8" font-size="11" text-anchor="middle">1호 EV 정면 직진 방면</text>
-      </g>
+        <!-- A 구역 (터치 시 상세 평면도로 줌인) -->
+        <g id="svg-zone-A" class="zone-interactive" onclick="openZoneDetail('A')">
+          <rect x="85" y="24" width="165" height="78" rx="10" fill="rgba(239, 68, 68, 0.08)" stroke="#ef4444" stroke-width="2" stroke-dasharray="5 3" />
+          <text x="167" y="55" fill="#f87171" font-size="20" font-weight="900" text-anchor="middle">A 구역 🔍</text>
+          <text x="167" y="75" fill="#94a3b8" font-size="10.5" text-anchor="middle">터치 시 상세 주차칸 열림</text>
+        </g>
 
-      <!-- B 구역 -->
-      <g id="svg-zone-B" class="zone-interactive" onclick="openRegisterModal('B')">
-        <rect x="36" y="145" width="118" height="145" rx="10" fill="rgba(34, 197, 94, 0.08)" stroke="#22c55e" stroke-width="2" stroke-dasharray="5 3" />
-        <text x="95" y="210" fill="#4ade80" font-size="20" font-weight="900" text-anchor="middle">B 구역</text>
-        <text x="95" y="235" fill="#94a3b8" font-size="11" text-anchor="middle">택배보관함 방향</text>
-      </g>
+        <!-- B 구역 -->
+        <g id="svg-zone-B" class="zone-interactive" onclick="openRegisterModal('B')">
+          <rect x="36" y="145" width="118" height="145" rx="10" fill="rgba(34, 197, 94, 0.08)" stroke="#22c55e" stroke-width="2" stroke-dasharray="5 3" />
+          <text x="95" y="210" fill="#4ade80" font-size="20" font-weight="900" text-anchor="middle">B 구역</text>
+          <text x="95" y="235" fill="#94a3b8" font-size="11" text-anchor="middle">택배보관함 방향</text>
+        </g>
 
-      <!-- C 구역 -->
-      <g id="svg-zone-C" class="zone-interactive" onclick="openRegisterModal('C')">
-        <rect x="252" y="90" width="124" height="195" rx="10" fill="rgba(234, 179, 8, 0.08)" stroke="#eab308" stroke-width="2" stroke-dasharray="5 3" />
-        <text x="314" y="180" fill="#facc15" font-size="20" font-weight="900" text-anchor="middle">C 구역</text>
-        <text x="314" y="205" fill="#94a3b8" font-size="11" text-anchor="middle">EV 우측방향</text>
-      </g>
+        <!-- C 구역 -->
+        <g id="svg-zone-C" class="zone-interactive" onclick="openRegisterModal('C')">
+          <rect x="252" y="90" width="124" height="195" rx="10" fill="rgba(234, 179, 8, 0.08)" stroke="#eab308" stroke-width="2" stroke-dasharray="5 3" />
+          <text x="314" y="180" fill="#facc15" font-size="20" font-weight="900" text-anchor="middle">C 구역</text>
+          <text x="314" y="205" fill="#94a3b8" font-size="11" text-anchor="middle">EV 우측방향</text>
+        </g>
 
-      <!-- 복도 -->
-      <polygon points="160,110 185,110 185,155 235,155 235,180 160,180" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
-      <line x1="172" y1="170" x2="172" y2="120" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
-      <line x1="175" y1="168" x2="225" y2="168" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
+        <!-- 복도 -->
+        <polygon points="160,110 185,110 185,155 235,155 235,180 160,180" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+        <line x1="172" y1="170" x2="172" y2="120" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
+        <line x1="175" y1="168" x2="225" y2="168" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
 
-      <!-- EV 홀 -->
-      <g transform="translate(160, 185)">
-        <rect x="0" y="0" width="34" height="30" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6" />
-        <text x="17" y="19" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">1호 EV</text>
+        <g transform="translate(160, 185)">
+          <rect x="0" y="0" width="34" height="30" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6" />
+          <text x="17" y="19" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">1호 EV</text>
+          <rect x="40" y="0" width="34" height="30" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6" />
+          <text x="57" y="19" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">2호 EV</text>
+          <text x="37" y="42" fill="#cbd5e1" font-size="9" font-weight="bold" text-anchor="middle">110동 EV 홀</text>
+        </g>
 
-        <rect x="40" y="0" width="34" height="30" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6" />
-        <text x="57" y="19" fill="#38bdf8" font-size="8.5" font-weight="bold" text-anchor="middle">2호 EV</text>
+        <g transform="translate(105, 116)">
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="#ef4444" />
+          <text x="15" y="9" fill="#f87171" font-size="9.5" font-weight="bold">무인택배함</text>
+        </g>
 
-        <text x="37" y="42" fill="#cbd5e1" font-size="9" font-weight="bold" text-anchor="middle">110동 EV 홀</text>
-      </g>
+        <g id="svg-car-marker" style="display: none;">
+          <circle cx="0" cy="0" r="16" fill="#2563eb" stroke="#38bdf8" stroke-width="2" filter="url(#glow-badge)" />
+          <text x="0" y="5" font-size="14" text-anchor="middle">🚗</text>
+        </g>
+      </svg>
+    </div>
 
-      <!-- 무인택배함 -->
-      <g transform="translate(105, 116)">
-        <rect x="0" y="0" width="10" height="10" rx="2" fill="#ef4444" />
-        <text x="15" y="9" fill="#f87171" font-size="9.5" font-weight="bold">무인택배함</text>
-      </g>
+    <!-- 2. A구역 상세 주차 평면도 (동적 렌더링 + 편집 가능) -->
+    <div id="detailMapWrapper" style="display:none;">
+      <div id="detailCaption" class="map-caption">💡 주차할 칸을 직접 터치하면 바로 등록됩니다</div>
+      <svg id="detailSvg" viewBox="0 0 400 360" style="width: 100%; height: auto; display: block;">
+        <rect x="6" y="6" width="388" height="348" rx="12" fill="#0b1120" stroke="#1e293b" stroke-width="1.5" />
+        
+        <!-- 110동 출입구 -->
+        <g transform="translate(24, 255)">
+          <rect width="65" height="50" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="32" y="26" fill="#fff" font-size="10.5" font-weight="bold" text-anchor="middle">110동</text>
+          <text x="32" y="40" fill="#38bdf8" font-size="9.5" text-anchor="middle">출입구</text>
+        </g>
 
-      <g id="svg-car-marker" style="display: none;">
-        <circle cx="0" cy="0" r="16" fill="#2563eb" stroke="#38bdf8" stroke-width="2" filter="url(#glow-badge)" />
-        <text x="0" y="5" font-size="14" text-anchor="middle">🚗</text>
-      </g>
-    </svg>
+        <!-- 중앙 통로 빗금 -->
+        <g transform="translate(170, 160)">
+          <rect width="40" height="42" fill="#1e293b" stroke="#475569" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="20" y="24" fill="#64748b" font-size="9" text-anchor="middle">중앙통로</text>
+        </g>
+
+        <!-- 주차칸들이 동적으로 렌더링되는 그룹 -->
+        <g id="spotsGroup"></g>
+      </svg>
+      <div style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+        <button id="addSpotBtn" class="ctrl-btn" style="display:none;" onclick="addNewSpotPrompt()">➕ 새 주차칸 추가</button>
+        <button id="resetLayoutBtn" class="ctrl-btn" style="display:none; color:#f87171;" onclick="resetToDefaultSpots()">초기 도면으로 복원</button>
+      </div>
+    </div>
   </div>
 
   <!-- 주차 상태 카드 -->
@@ -521,10 +545,9 @@
       <span class="status-badge-user" id="display-user">등록자: -</span>
     </div>
 
-    <!-- 층수 뱃지 맨 앞 + 구역/기둥 텍스트 -->
     <div class="status-main-row">
       <span class="floor-badge" id="display-floor-badge">B2</span>
-      <div class="status-pos-text" id="display-pos-text">-</div>
+      <div class="status-pos-text" id="display-pos">-</div>
     </div>
 
     <div class="status-details-grid">
@@ -556,7 +579,7 @@
   <img id="lightboxImg" src="">
 </div>
 
-<!-- 모달 -->
+<!-- 주차 위치 등록 / 수정 모달 -->
 <div id="registerModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -564,27 +587,27 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
 
-    <div class="picker-section-title">구역 선택</div>
-    <div style="display: flex; gap: 8px;">
+    <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">구역 선택</div>
+    <div style="display: flex; gap: 8px; margin-bottom:12px;">
       <button class="user-btn" id="btn-zone-A" onclick="changeModalZone('A')">A구역</button>
       <button class="user-btn" id="btn-zone-B" onclick="changeModalZone('B')">B구역</button>
       <button class="user-btn" id="btn-zone-C" onclick="changeModalZone('C')">C구역</button>
     </div>
 
-    <div class="picker-section-title">기둥 번호 직접 입력</div>
+    <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">기둥/칸 번호 입력</div>
     <input type="text" id="inputPillar" class="text-input" placeholder="예: Q11, R10, M14, 택배함앞">
 
-    <div class="picker-section-title">주차 사진 첨부 (선택)</div>
+    <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">주차 사진 첨부 (선택)</div>
     <label class="camera-btn" id="cameraBtnLabel">
       <span>📷</span> <span id="cameraBtnText">사진 촬영 또는 앨범에서 선택</span>
       <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;" onchange="handlePhotoUpload(this)">
     </label>
     <img id="modalPhotoPreview" class="modal-photo-preview" src="">
 
-    <div class="picker-section-title">주차자</div>
+    <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin:14px 0 8px;">주차자</div>
     <div class="user-toggle">
-      <button class="user-btn active" id="user-btn-me" onclick="selectUser('근수')">근수</button>
-      <button class="user-btn" id="user-btn-wife" onclick="selectUser('효진')">효진</button>
+      <button class="user-btn active" id="user-btn-me" onclick="selectUser('남편')">남편</button>
+      <button class="user-btn" id="user-btn-wife" onclick="selectUser('와이프')">와이프</button>
     </div>
 
     <button id="saveSubmitBtn" class="submit-btn" onclick="submitParkingData()">
@@ -593,7 +616,25 @@
   </div>
 </div>
 
+<!-- 도면 주차칸 편집 팝업 -->
+<div id="spotEditModal" class="modal-overlay">
+  <div class="modal-content" style="max-width:360px;">
+    <div class="modal-header">
+      <h3>주차칸 정보 수정</h3>
+      <button class="modal-close" onclick="closeSpotEditModal()">✕</button>
+    </div>
+    <label style="font-size:13px; color:var(--text-muted); font-weight:bold;">블록 / 기둥 번호</label>
+    <input type="text" id="editSpotNameInput" class="text-input" style="margin-top:6px;">
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="user-btn" style="color:#f87171; border-color:#ef4444;" onclick="deleteCurrentSpot()">칸 삭제</button>
+      <button class="submit-btn" style="flex:2;" onclick="saveSpotEdit()">변경 저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ▼▼ 본인 구글 앱스 스크립트 웹앱 URL 입력 ▼▼
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxRDQ4C9HC47rSSgaKpfON4WfP2vI0gymwcVCd2dn_CtaOBsDJHkSwCDgNWIJpUckLEwQ/exec";
 
   const zoneExitGuides = {
@@ -614,29 +655,283 @@
     "C": { x: 350, y: 110 }
   };
 
+  // 손도면 기반 초기 A구역 주차칸 좌표 데이터
+  const defaultZoneASpots = [
+    // 상단 좌측 2열 (O9, Q9 / O10, Q10)
+    { id: "s1", name: "O9-1", x: 20, y: 30, w: 23, h: 28 },
+    { id: "s2", name: "O9-2", x: 45, y: 30, w: 23, h: 28 },
+    { id: "s3", name: "O9-3", x: 70, y: 30, w: 23, h: 28 },
+    { id: "s4", name: "Q9-1", x: 95, y: 30, w: 23, h: 28 },
+    { id: "s5", name: "Q9-2", x: 120, y: 30, w: 23, h: 28 },
+    { id: "s6", name: "Q9-3", x: 145, y: 30, w: 23, h: 28 },
+
+    { id: "s7", name: "O10-1", x: 20, y: 60, w: 23, h: 28 },
+    { id: "s8", name: "O10-2", x: 45, y: 60, w: 23, h: 28 },
+    { id: "s9", name: "O10-3", x: 70, y: 60, w: 23, h: 28 },
+    { id: "s10", name: "Q10-1", x: 95, y: 60, w: 23, h: 28 },
+    { id: "s11", name: "Q10-2", x: 120, y: 60, w: 23, h: 28 },
+    { id: "s12", name: "Q10-3", x: 145, y: 60, w: 23, h: 28 },
+
+    // 상단 우측 2열 (R9, S9, U9 / R10, S10, U10)
+    { id: "s13", name: "R9", x: 215, y: 30, w: 25, h: 28 },
+    { id: "s14", name: "R9-2", x: 242, y: 30, w: 25, h: 28 },
+    { id: "s15", name: "S9", x: 269, y: 30, w: 25, h: 28 },
+    { id: "s16", name: "S9-2", x: 296, y: 30, w: 25, h: 28 },
+    { id: "s17", name: "U9", x: 323, y: 30, w: 25, h: 28 },
+    { id: "s18", name: "U9-2", x: 350, y: 30, w: 25, h: 28 },
+
+    { id: "s19", name: "R10", x: 215, y: 60, w: 25, h: 28 },
+    { id: "s20", name: "R10-2", x: 242, y: 60, w: 25, h: 28 },
+    { id: "s21", name: "S10", x: 269, y: 60, w: 25, h: 28 },
+    { id: "s22", name: "S10-2", x: 296, y: 60, w: 25, h: 28 },
+    { id: "s23", name: "U10", x: 323, y: 60, w: 25, h: 28 },
+    { id: "s24", name: "U10-2", x: 350, y: 60, w: 25, h: 28 },
+
+    // O11 라인
+    { id: "s25", name: "O11-1", x: 95, y: 160, w: 24, h: 26 },
+    { id: "s26", name: "O11", x: 121, y: 160, w: 24, h: 26 },
+    { id: "s27", name: "O11-3", x: 147, y: 160, w: 24, h: 26 },
+
+    // Q11 라인 (세로 6칸)
+    { id: "s28", name: "Q11-1", x: 147, y: 188, w: 24, h: 22 },
+    { id: "s29", name: "Q11-2", x: 147, y: 212, w: 24, h: 22 },
+    { id: "s30", name: "Q11", x: 147, y: 236, w: 24, h: 22 },
+    { id: "s31", name: "Q11-4", x: 147, y: 260, w: 24, h: 22 },
+    { id: "s32", name: "Q11-5", x: 147, y: 284, w: 24, h: 22 },
+    { id: "s33", name: "Q11-6", x: 147, y: 308, w: 24, h: 22 },
+
+    // 맞은편 R11 & R13 라인
+    { id: "s34", name: "R11", x: 215, y: 160, w: 24, h: 22 },
+    { id: "s35", name: "R11-2", x: 241, y: 160, w: 24, h: 22 },
+    { id: "s36", name: "R11-3", x: 215, y: 184, w: 24, h: 22 },
+    { id: "s37", name: "R11-4", x: 215, y: 208, w: 24, h: 22 },
+    { id: "s38", name: "R11-5", x: 215, y: 232, w: 24, h: 22 },
+    { id: "s39", name: "R11-6", x: 215, y: 256, w: 24, h: 22 },
+    { id: "s40", name: "R13", x: 215, y: 280, w: 24, h: 22 },
+    { id: "s41", name: "R11-7", x: 215, y: 304, w: 24, h: 22 }
+  ];
+
+  let zoneASpots = [];
+  let isEditMode = false;
+  let editingSpotId = null;
+
   let currentFloor = "지하 2층";
   let currentZone = "A";
   let currentPillar = "";
-  let selectedUser = "근수";
+  let selectedUser = "남편";
   let currentBase64Photo = "";
 
   window.onload = function() {
+    loadZoneASpots();
     fetchParkingData();
   };
 
-  // JSONP 방식으로 구글 시트 데이터 로드 (CORS/리다이렉트 완전 우회)
+  // 주차칸 데이터 불러오기 (LocalStorage)
+  function loadZoneASpots() {
+    const saved = localStorage.getItem("parking_zoneA_custom_spots");
+    if (saved) {
+      try {
+        zoneASpots = JSON.parse(saved);
+      } catch(e) {
+        zoneASpots = [...defaultZoneASpots];
+      }
+    } else {
+      zoneASpots = [...defaultZoneASpots];
+    }
+  }
+
+  function saveZoneASpots() {
+    localStorage.setItem("parking_zoneA_custom_spots", JSON.stringify(zoneASpots));
+    renderZoneASpots();
+  }
+
+  function resetToDefaultSpots() {
+    if (confirm("도면을 초기 상태로 되돌리시겠습니까?")) {
+      zoneASpots = [...defaultZoneASpots];
+      saveZoneASpots();
+    }
+  }
+
+  // A구역 상세 화면 열기
+  function openZoneDetail(zone) {
+    if (zone !== "A") return;
+    document.getElementById("mainMapWrapper").style.display = "none";
+    document.getElementById("detailMapWrapper").style.display = "block";
+    document.getElementById("backToMainBtn").style.display = "inline-block";
+    document.getElementById("toggleEditBtn").style.display = "inline-block";
+    document.getElementById("mapViewTitle").innerText = "🔍 A구역 상세 주차 평면도";
+    renderZoneASpots();
+  }
+
+  function showMainMap() {
+    isEditMode = false;
+    updateEditModeUI();
+    document.getElementById("detailMapWrapper").style.display = "none";
+    document.getElementById("mainMapWrapper").style.display = "block";
+    document.getElementById("backToMainBtn").style.display = "none";
+    document.getElementById("toggleEditBtn").style.display = "none";
+    document.getElementById("mapViewTitle").innerText = "🗺 전체 조망 안내도";
+  }
+
+  // 편집 모드 토글
+  function toggleEditMode() {
+    isEditMode = !isEditMode;
+    updateEditModeUI();
+    renderZoneASpots();
+  }
+
+  function updateEditModeUI() {
+    const btn = document.getElementById("toggleEditBtn");
+    const addBtn = document.getElementById("addSpotBtn");
+    const resetBtn = document.getElementById("resetLayoutBtn");
+    const caption = document.getElementById("detailCaption");
+
+    if (isEditMode) {
+      btn.classList.add("active");
+      btn.innerText = "완료";
+      addBtn.style.display = "inline-block";
+      resetBtn.style.display = "inline-block";
+      caption.innerHTML = "🛠 <b>편집 모드:</b> 수정할 주차칸을 터치하여 번호 변경 또는 삭제";
+      caption.style.color = "#f59e0b";
+    } else {
+      btn.classList.remove("active");
+      btn.innerText = "🛠 도면 편집";
+      addBtn.style.display = "none";
+      resetBtn.style.display = "none";
+      caption.innerText = "💡 주차할 칸을 직접 터치하면 바로 등록됩니다";
+      caption.style.color = "var(--text-muted)";
+    }
+  }
+
+  // 상세 평면도 주차칸 SVG 렌더링
+  function renderZoneASpots() {
+    const group = document.getElementById("spotsGroup");
+    group.innerHTML = "";
+
+    zoneASpots.forEach(spot => {
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      const isCurrentParked = (currentZone === "A" && currentPillar === spot.name);
+
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", spot.x);
+      rect.setAttribute("y", spot.y);
+      rect.setAttribute("width", spot.w);
+      rect.setAttribute("height", spot.h);
+      rect.setAttribute("rx", "3");
+      rect.setAttribute("class", `spot-rect ${isCurrentParked ? 'car-parked' : ''}`);
+
+      if (isEditMode) {
+        rect.setAttribute("fill", "#1e293b");
+        rect.setAttribute("stroke", "#f59e0b");
+        rect.setAttribute("stroke-width", "1.5");
+        rect.setAttribute("stroke-dasharray", "2 2");
+      } else {
+        rect.setAttribute("fill", isCurrentParked ? "#2563eb" : "rgba(239, 68, 68, 0.08)");
+        rect.setAttribute("stroke", isCurrentParked ? "#38bdf8" : "#ef4444");
+        rect.setAttribute("stroke-width", isCurrentParked ? "2.5" : "1");
+      }
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", spot.x + spot.w / 2);
+      text.setAttribute("y", spot.y + spot.h / 2 + 3);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("font-size", isCurrentParked ? "11" : "8");
+      text.setAttribute("font-weight", "bold");
+      text.setAttribute("fill", isCurrentParked ? "#fff" : (isEditMode ? "#f59e0b" : "#fca5a5"));
+      text.textContent = isCurrentParked ? "🚗" : spot.name;
+
+      g.appendChild(rect);
+      g.appendChild(text);
+
+      g.onclick = function() {
+        if (isEditMode) {
+          openSpotEditModal(spot.id);
+        } else {
+          // 주차칸 터치 시 즉시 등록
+          quickParkAtSpot(spot.name);
+        }
+      };
+
+      group.appendChild(g);
+    });
+  }
+
+  // 주차칸 터치 시 원클릭 주차 등록
+  function quickParkAtSpot(spotName) {
+    if (confirm(`A구역 [${spotName}]에 주차를 등록하시겠습니까?`)) {
+      const payload = {
+        floor: currentFloor,
+        zone: "A",
+        pillar: spotName,
+        updatedBy: selectedUser,
+        photo: ""
+      };
+      saveToGas(payload);
+    }
+  }
+
+  // 주차칸 수정 팝업 열기
+  function openSpotEditModal(spotId) {
+    editingSpotId = spotId;
+    const spot = zoneASpots.find(s => s.id === spotId);
+    if (!spot) return;
+
+    document.getElementById("editSpotNameInput").value = spot.name;
+    document.getElementById("spotEditModal").style.display = "flex";
+  }
+
+  function closeSpotEditModal() {
+    document.getElementById("spotEditModal").style.display = "none";
+    editingSpotId = null;
+  }
+
+  function saveSpotEdit() {
+    const val = document.getElementById("editSpotNameInput").value.trim();
+    if (!val) {
+      alert("주차칸 번호를 입력해주세요.");
+      return;
+    }
+    const idx = zoneASpots.findIndex(s => s.id === editingSpotId);
+    if (idx > -1) {
+      zoneASpots[idx].name = val;
+      saveZoneASpots();
+      closeSpotEditModal();
+    }
+  }
+
+  function deleteCurrentSpot() {
+    if (confirm("이 주차칸을 삭제하시겠습니까?")) {
+      zoneASpots = zoneASpots.filter(s => s.id !== editingSpotId);
+      saveZoneASpots();
+      closeSpotEditModal();
+    }
+  }
+
+  // 새 주차칸 추가
+  function addNewSpotPrompt() {
+    const name = prompt("추가할 주차칸 번호를 입력하세요 (예: Q11-7):");
+    if (!name) return;
+
+    // 기본 위치: 오른쪽 여백 쪽
+    const newId = "s_" + Date.now();
+    zoneASpots.push({
+      id: newId,
+      name: name.trim(),
+      x: 180,
+      y: 240,
+      w: 24,
+      h: 24
+    });
+    saveZoneASpots();
+    alert(`[${name}] 주차칸이 추가되었습니다. 편집창에서 번호나 위치를 확인하세요!`);
+  }
+
+  // 백엔드 데이터 조회
   function fetchParkingData() {
-    const oldScript = document.getElementById("jsonp-script");
-    if (oldScript) oldScript.remove();
-
-    window.handleParkingDataResponse = function(data) {
-      renderParkingStatus(data);
-    };
-
-    const script = document.createElement("script");
-    script.id = "jsonp-script";
-    script.src = `${GAS_URL}?callback=handleParkingDataResponse&_=${new Date().getTime()}`;
-    document.body.appendChild(script);
+    fetch(GAS_URL)
+      .then(res => res.json())
+      .then(data => renderParkingStatus(data))
+      .catch(err => console.error("데이터 조회 에러:", err));
   }
 
   function renderParkingStatus(data) {
@@ -651,7 +946,6 @@
     const floorShort = currentFloor.includes("3") ? "B3" : "B2";
     document.getElementById("display-floor-badge").innerText = floorShort;
     document.getElementById("display-pos-text").innerText = (data.zone && data.pillar) ? `${data.zone}구역 · ${data.pillar}` : "미등록";
-    
     document.getElementById("display-user").innerText = "등록자: " + (data.updatedBy || "-");
     document.getElementById("display-exit").innerText = zoneExitGuides[data.zone] || "-";
     document.getElementById("display-time").innerText = data.updatedAt || "-";
@@ -669,6 +963,7 @@
       photoWrap.style.display = "none";
     }
 
+    // 메인 지도 활성화
     document.querySelectorAll(".zone-interactive").forEach(el => el.classList.remove("active"));
     const marker = document.getElementById("svg-car-marker");
 
@@ -682,6 +977,9 @@
     } else {
       marker.style.display = "none";
     }
+
+    // 상세 평면도 열려있으면 칸 갱신
+    renderZoneASpots();
   }
 
   function switchFloor(floor) {
@@ -690,22 +988,19 @@
     document.getElementById("tab-B3").classList.toggle("active", floor === "지하 3층");
   }
 
+  // 모달 함수들
   function openRegisterModal(zone) {
     currentZone = zone || "A";
     changeModalZone(currentZone);
-
     document.getElementById("inputPillar").value = "";
     currentBase64Photo = "";
     document.getElementById("modalPhotoPreview").style.display = "none";
     document.getElementById("cameraBtnLabel").classList.remove("has-photo");
     document.getElementById("cameraBtnText").innerText = "사진 촬영 또는 앨범에서 선택";
-
     document.getElementById("registerModal").style.display = "flex";
   }
 
-  function closeModal() {
-    document.getElementById("registerModal").style.display = "none";
-  }
+  function closeModal() { document.getElementById("registerModal").style.display = "none"; }
 
   function changeModalZone(zone) {
     currentZone = zone;
@@ -717,8 +1012,8 @@
 
   function selectUser(user) {
     selectedUser = user;
-    document.getElementById("user-btn-me").classList.toggle("active", user === "근수");
-    document.getElementById("user-btn-wife").classList.toggle("active", user === "효진");
+    document.getElementById("user-btn-me").classList.toggle("active", user === "남편");
+    document.getElementById("user-btn-wife").classList.toggle("active", user === "와이프");
   }
 
   function handlePhotoUpload(input) {
@@ -733,25 +1028,16 @@
         const MAX_WIDTH = 600;
         let width = img.width;
         let height = img.height;
-
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
+        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
         currentBase64Photo = canvas.toDataURL("image/jpeg", 0.7);
-
         const preview = document.getElementById("modalPhotoPreview");
         preview.src = currentBase64Photo;
         preview.style.display = "block";
-
-        const label = document.getElementById("cameraBtnLabel");
-        label.classList.add("has-photo");
+        document.getElementById("cameraBtnLabel").classList.add("has-photo");
         document.getElementById("cameraBtnText").innerText = "✅ 사진 첨부됨 (변경 가능)";
       };
       img.src = e.target.result;
@@ -762,14 +1048,9 @@
   function submitParkingData() {
     const pillarInput = document.getElementById("inputPillar").value.trim();
     if (!pillarInput) {
-      alert("기둥 번호를 입력해 주세요! (예: Q11)");
+      alert("기둥/칸 번호를 입력해 주세요!");
       return;
     }
-
-    const btn = document.getElementById("saveSubmitBtn");
-    btn.disabled = true;
-    btn.innerText = "저장 중...";
-
     const payload = {
       floor: currentFloor,
       zone: currentZone,
@@ -777,6 +1058,12 @@
       updatedBy: selectedUser,
       photo: currentBase64Photo
     };
+    saveToGas(payload);
+  }
+
+  function saveToGas(payload) {
+    const btn = document.getElementById("saveSubmitBtn");
+    if(btn) { btn.disabled = true; btn.innerText = "저장 중..."; }
 
     fetch(GAS_URL, {
       method: "POST",
@@ -785,13 +1072,12 @@
     .then(res => res.json())
     .then(res => {
       closeModal();
-      btn.disabled = false;
-      btn.innerText = "주차 위치 저장하기";
+      if(btn) { btn.disabled = false; btn.innerText = "주차 위치 저장하기"; }
       fetchParkingData();
     })
     .catch(err => {
       closeModal();
-      btn.disabled = false;
+      if(btn) { btn.disabled = false; }
       fetchParkingData();
     });
   }
@@ -802,12 +1088,8 @@
       return;
     }
     const message = `[힐스테이트푸르지오주안 110동]\n🚗 차 위치: ${currentFloor} ${currentZone}구역 [${currentPillar}]\n💡 출구: ${zoneExitGuides[currentZone]}\n📱 주차 앱 확인하기:\n${window.location.href}`;
-    
     if (navigator.share) {
-      navigator.share({
-        title: '주차 위치 공유',
-        text: message
-      }).catch(() => {});
+      navigator.share({ title: '주차 위치 공유', text: message }).catch(() => {});
     } else {
       navigator.clipboard.writeText(message).then(() => {
         alert("📋 카카오톡 공유 문구가 복사되었습니다! 카톡 대화방에 붙여넣어 주세요.");
@@ -815,9 +1097,7 @@
     }
   }
 
-  function openLightbox() {
-    document.getElementById("lightboxOverlay").style.display = "flex";
-  }
+  function openLightbox() { document.getElementById("lightboxOverlay").style.display = "flex"; }
 </script>
 
 </body>
