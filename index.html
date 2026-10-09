@@ -145,11 +145,22 @@
     max-height: 94vh; display: flex; flex-direction: column;
   }
   @keyframes modalSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .modal-header h3 { margin: 0; font-size: 17px; }
   .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 4px; }
 
-  /* 팝업 도면 컨테이너: 가로 스크롤 완전 제거 & 가로폭 100% 자동 맞춤 */
+  /* 팝업 툴바 & 줌 버튼 */
+  .popup-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; font-size: 11.5px; color: var(--text-muted);
+  }
+  .zoom-btns { display: flex; gap: 6px; align-items: center; }
+  .zoom-btn {
+    background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+    padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;
+  }
+
+  /* 팝업 도면 컨테이너: 터치 인터랙션 지원 */
   .detail-popup-viewport {
     width: 100%;
     min-height: 380px;
@@ -157,19 +168,19 @@
     background: #090d16;
     border-radius: 14px;
     border: 1.5px solid #1e293b;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    position: relative;
     overflow: hidden;
-    padding: 6px;
+    touch-action: none; /* 브라우저 기본 스크롤 차단하고 직접 제어 */
+    display: flex; justify-content: center; align-items: center;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
   }
 
   #popupDetailSvg {
     width: 100%;
-    height: auto;
-    max-height: 65vh;
+    height: 100%;
     display: block;
+    transform-origin: center center;
+    transition: transform 0.05s ease-out;
   }
 
   .spot-node { cursor: pointer; }
@@ -225,7 +236,7 @@
 
   <!-- 메인 안내도 -->
   <div class="map-card">
-    <div class="map-caption">💡 구역(A, B, C)을 터치하면 상세 지도가 한눈에 열립니다</div>
+    <div class="map-caption">💡 구역(A, B, C)을 터치하면 상세 지도가 열립니다</div>
     <svg viewBox="0 0 400 320" style="width: 100%; height: auto; display: block;">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -259,7 +270,6 @@
         <text x="314" y="198" fill="#94a3b8" font-size="11" text-anchor="middle">EV 우측방향</text>
       </g>
 
-      <!-- 중앙 복도 -->
       <polygon points="160,110 185,110 185,155 235,155 235,180 160,180" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
       <line x1="172" y1="170" x2="172" y2="120" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
       <line x1="175" y1="168" x2="225" y2="168" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrow)" />
@@ -321,19 +331,24 @@
   </div>
 </div>
 
-<!-- 구역별 상세 평면도 팝업 모달 (가로 스크롤 없는 전체화면 자동 맞춤) -->
+<!-- 구역별 상세 평면도 팝업 모달 (핀치 줌 + 토글 버튼 탑재) -->
 <div id="zoneDetailModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="popupZoneTitle">A 구역 상세 평면도</h3>
       <button class="modal-close" onclick="closeZonePopup()">✕</button>
     </div>
-    <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-      <span>💡 주차한 칸을 터치하면 바로 등록됩니다</span>
-      <span style="font-size:11px; color:#38bdf8;">전체 도면 조망 모드</span>
+
+    <!-- 줌 제어 툴바 -->
+    <div class="popup-toolbar">
+      <span>💡 두 손가락 핀치 줌 & 드래그 이동</span>
+      <div class="zoom-btns">
+        <button class="zoom-btn" onclick="togglePopupZoom()">🔍 줌 토글</button>
+        <button class="zoom-btn" onclick="resetPopupTransform()">↺ 초기화</button>
+      </div>
     </div>
     
-    <div class="detail-popup-viewport">
+    <div class="detail-popup-viewport" id="popupViewport">
       <svg id="popupDetailSvg" preserveAspectRatio="xMidYMid meet">
         <g id="popupElementsGroup"></g>
       </svg>
@@ -402,6 +417,18 @@
   let activePopupZone = "A";
   let mapData = { "A": [], "B": [], "C": [] };
 
+  // 모바일 팝업 줌 & 팬 상태
+  let popScale = 1.0;
+  let popTransX = 0;
+  let popTransY = 0;
+  let isPinching = false;
+  let isPanning = false;
+  let startPinchDist = 0;
+  let startPanX = 0;
+  let startPanY = 0;
+  let initialScale = 1.0;
+  let hasTouchMoved = false;
+
   let currentFloor = "지하 2층";
   let currentZone = "A";
   let currentPillar = "";
@@ -411,6 +438,7 @@
   window.onload = function() {
     loadCloudMapConfig();
     fetchParkingData();
+    initPopupTouchEvents();
   };
 
   function getLabelColor(label) {
@@ -444,6 +472,7 @@
   function openZonePopup(zone) {
     activePopupZone = zone;
     document.getElementById("popupZoneTitle").innerText = `${zone} 구역 상세 평면도`;
+    resetPopupTransform();
     renderPopupElements(zone);
     document.getElementById("zoneDetailModal").style.display = "flex";
   }
@@ -452,7 +481,81 @@
     document.getElementById("zoneDetailModal").style.display = "none";
   }
 
-  // 전체 도면 자동 감지 및 스마트 반응형 뷰포트 맞춤
+  // 줌 & 이동 초기화
+  function resetPopupTransform() {
+    popScale = 1.0;
+    popTransX = 0;
+    popTransY = 0;
+    applyPopupTransform();
+  }
+
+  // 원클릭 줌 토글 (1.0배 ↔ 1.8배)
+  function togglePopupZoom() {
+    if (popScale > 1.2) {
+      resetPopupTransform();
+    } else {
+      popScale = 1.8;
+      applyPopupTransform();
+    }
+  }
+
+  function applyPopupTransform() {
+    const svg = document.getElementById("popupDetailSvg");
+    svg.style.transform = `translate(${popTransX}px, ${popTransY}px) scale(${popScale})`;
+  }
+
+  // --- 모바일 두 손가락 핀치 줌 & 팬 인터랙션 ---
+  function initPopupTouchEvents() {
+    const vp = document.getElementById("popupViewport");
+
+    vp.addEventListener("touchstart", (e) => {
+      hasTouchMoved = false;
+      if (e.touches.length === 2) {
+        // 핀치 줌 시작
+        isPinching = true;
+        isPanning = false;
+        startPinchDist = getDistance(e.touches[0], e.touches[1]);
+        initialScale = popScale;
+      } else if (e.touches.length === 1) {
+        // 드래그(Pan) 시작
+        isPanning = true;
+        isPinching = false;
+        startPanX = e.touches[0].clientX - popTransX;
+        startPanY = e.touches[0].clientY - popTransY;
+      }
+    }, { passive: false });
+
+    vp.addEventListener("touchmove", (e) => {
+      hasTouchMoved = true;
+      e.preventDefault();
+
+      if (isPinching && e.touches.length === 2) {
+        const curDist = getDistance(e.touches[0], e.touches[1]);
+        if (startPinchDist > 0) {
+          const factor = curDist / startPinchDist;
+          popScale = Math.min(3.5, Math.max(0.8, initialScale * factor));
+          applyPopupTransform();
+        }
+      } else if (isPanning && e.touches.length === 1) {
+        popTransX = e.touches[0].clientX - startPanX;
+        popTransY = e.touches[0].clientY - startPanY;
+        applyPopupTransform();
+      }
+    }, { passive: false });
+
+    vp.addEventListener("touchend", (e) => {
+      if (e.touches.length < 2) isPinching = false;
+      if (e.touches.length === 0) isPanning = false;
+    });
+
+    function getDistance(t1, t2) {
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+  }
+
+  // 도면 렌더링
   function renderPopupElements(zone) {
     const group = document.getElementById("popupElementsGroup");
     const svg = document.getElementById("popupDetailSvg");
@@ -465,7 +568,6 @@
       return;
     }
 
-    // 도면에 실제로 배치된 모든 요소의 외곽 경계(Bounding Box) 계산
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     items.forEach(it => {
       minX = Math.min(minX, it.x);
@@ -474,14 +576,12 @@
       maxY = Math.max(maxY, it.y + (it.h || 40));
     });
 
-    // 상하좌우 여백(Padding) 20px 추가
     const pad = 20;
     const cropX = Math.max(0, minX - pad);
     const cropY = Math.max(0, minY - pad);
     const cropW = (maxX - minX) + (pad * 2);
     const cropH = (maxY - minY) + (pad * 2);
 
-    // 고정 픽셀 width, height를 제거하고 viewBox만 설정하여 모바일 화면폭에 100% 자동 맞춤
     svg.removeAttribute("width");
     svg.removeAttribute("height");
     svg.setAttribute("viewBox", `${cropX} ${cropY} ${cropW} ${cropH}`);
@@ -504,7 +604,7 @@
         if (isCar) {
           rect.setAttribute("fill", "#2563eb");
           rect.setAttribute("stroke", "#38bdf8");
-          rect.setAttribute("stroke-width", "3");
+          rect.setAttribute("stroke-width", "3.5");
           textColor = "#fff";
         } else {
           const colorSet = getLabelColor(it.name);
@@ -540,6 +640,8 @@
 
       if (it.type === "spot") {
         g.onclick = () => {
+          // 화면 이동(드래그) 중 발생한 터치 릴리즈는 클릭으로 처리하지 않음
+          if (hasTouchMoved) return;
           closeZonePopup();
           quickParkAtSpot(zone, it.name);
         };
@@ -601,6 +703,7 @@
     const photoImg = document.getElementById("mainPhotoImg");
     if (data.photo && data.photo.length > 30) {
       photoImg.src = data.photo;
+      document.getElementById("lightboxImg").src = data.photo;
       photoWrap.style.display = "block";
     } else {
       photoWrap.style.display = "none";
