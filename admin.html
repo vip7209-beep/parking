@@ -2,45 +2,79 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뽀띠 도면 스튜디오 (완전 커스텀)</title>
+<title>뽀띠 도면 스튜디오 (QHD 최적화 에디터)</title>
 <style>
   :root {
     --bg: #090d16; --panel: #131b2e; --border: #1e293b; --accent: #38bdf8;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif; background: var(--bg); color: #fff; overflow: hidden; }
+  body {
+    margin: 0; display: flex; height: 100vh; width: 100vw;
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
+    background: var(--bg); color: #fff; overflow: hidden;
+  }
   
-  #sidebar { width: 320px; background: var(--panel); border-right: 1.5px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10; overflow-y: auto; }
-  h2 { margin: 0; font-size: 17px; color: var(--accent); }
+  /* 좌측 사이드 패널 */
+  #sidebar {
+    width: 320px; min-width: 320px; height: 100vh;
+    background: var(--panel); border-right: 1.5px solid var(--border);
+    padding: 18px; display: flex; flex-direction: column; gap: 12px;
+    z-index: 20; overflow-y: auto;
+  }
+  h2 { margin: 0; font-size: 18px; color: var(--accent); }
   
   .zone-btns { display: flex; gap: 6px; }
-  .zone-btn { flex: 1; padding: 9px; background: #090d16; border: 1px solid var(--border); color: #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  .zone-btn { flex: 1; padding: 10px; background: #090d16; border: 1px solid var(--border); color: #94a3b8; border-radius: 8px; font-weight: bold; cursor: pointer; }
   .zone-btn.active { background: #2563eb; color: #fff; border-color: #38bdf8; }
 
   .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .tool-btn { padding: 8px; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; }
+  .tool-btn { padding: 9px; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; }
   .tool-btn:hover { background: #334155; }
   
   .prop-box { background: #090d16; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 13px; }
   .prop-box label { font-size: 11px; color: #94a3b8; font-weight: bold; }
   .prop-box input { width: 100%; background: #1e293b; border: 1px solid #334155; color: #fff; padding: 7px; border-radius: 6px; margin: 4px 0 8px; outline: none; }
   
-  .save-btn { width: 100%; padding: 13px; background: #10b981; border: none; color: #fff; font-size: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: auto; }
+  .save-btn { width: 100%; padding: 14px; background: #10b981; border: none; color: #fff; font-size: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: auto; }
   .save-btn:hover { background: #059669; }
 
-  #canvas-container { flex: 1; overflow: auto; background: #060911; position: relative; }
-  svg { display: block; background: #0b1120; border: 1px solid #1e293b; user-select: none; }
+  /* 우측 작업 뷰포트 */
+  #viewport {
+    flex: 1; height: 100vh; position: relative; overflow: hidden;
+    background: #040711; cursor: default;
+  }
+  
+  /* 상단 플로팅 줌 컨트롤 바 */
+  .viewport-bar {
+    position: absolute; top: 16px; right: 20px; z-index: 15;
+    background: rgba(19, 27, 46, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px 12px; display: flex; align-items: center; gap: 10px; font-size: 12px;
+  }
+  .view-btn {
+    background: #1e293b; border: 1px solid #334155; color: #fff;
+    padding: 4px 8px; border-radius: 6px; font-weight: bold; cursor: pointer;
+  }
+
+  svg {
+    position: absolute; top: 0; left: 0;
+    transform-origin: 0 0;
+    background: #0b1120;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    user-select: none;
+  }
   .grid-pattern { stroke: #141d2e; stroke-width: 0.8; }
   
   .canvas-item { cursor: move; }
-  .canvas-item.selected rect, .canvas-item.selected line { stroke: #f59e0b !important; stroke-width: 2.5px !important; }
-  .resize-handle { width: 9px; height: 9px; fill: #f59e0b; cursor: nwse-resize; }
+  .canvas-item.selected rect { stroke: #f59e0b !important; stroke-width: 2.5px !important; }
+  .resize-handle { width: 10px; height: 10px; fill: #f59e0b; cursor: nwse-resize; }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
   <h2>🛠 뽀띠 도면 스튜디오</h2>
+  <span style="font-size:11px; color:#64748b;">QHD (2560×1440) 와이드 모드</span>
   
   <div style="font-size:12px; color:#94a3b8; font-weight:bold;">구역 선택</div>
   <div class="zone-btns">
@@ -56,7 +90,7 @@
     <button class="tool-btn" onclick="addItem('ev_hall')">🏢 EV 홀</button>
     <button class="tool-btn" onclick="addItem('ev_box')">🚪 1·2호 EV</button>
     <button class="tool-btn" onclick="addItem('exit')">➡️ 출구 표시</button>
-    <button class="tool-btn" onclick="addItem('wall')">📏 통로/벽체 라인</button>
+    <button class="tool-btn" onclick="addItem('wall')">📏 통로/벽체</button>
   </div>
   <button class="tool-btn" style="color:#f87171; width:100%;" onclick="deleteSelectedItem()">🗑 선택 요소 삭제</button>
 
@@ -78,25 +112,34 @@
     <div id="propCoords" style="color:#64748b; font-size:12px;">좌표: X -, Y -</div>
   </div>
 
-  <div style="font-size:11px; color:#64748b;">
-    💡 <b>Tip</b>: 마우스 드래그로 이동, 우하단 주황 사각점을 당기면 크기 조절됩니다.
+  <div style="font-size:11.5px; color:#64748b; line-height:1.5;">
+    🖱 <b>조작 안내</b><br>
+    • 마우스 휠: <b>확대 / 축소</b><br>
+    • 마우스 우클릭 드래그: <b>화면 이동(Pan)</b><br>
+    • 요소 드래그: <b>위치 이동 (10px 스냅)</b><br>
+    • 주황 사각점 드래그: <b>크기 조절</b>
   </div>
 
   <button class="save-btn" onclick="saveToCloud()">☁️ 구글 시트로 도면 배포</button>
 </div>
 
-<div id="canvas-container">
-  <!-- 여백 과다 해소를 위해 가로 1000 x 세로 750으로 맞춤 설정 -->
-  <svg id="editorSvg" width="1000" height="750" viewBox="0 0 1000 750">
+<div id="viewport">
+  <div class="viewport-bar">
+    <span id="zoomLabel" style="font-weight:bold; color:#38bdf8;">100%</span>
+    <button class="view-btn" onclick="zoomIn()">➕</button>
+    <button class="view-btn" onclick="zoomOut()">➖</button>
+    <button class="view-btn" onclick="resetZoom()">초기화</button>
+    <button class="view-btn" onclick="fitView()">전체맞춤</button>
+  </div>
+
+  <!-- 초대형 와이드 캔버스 (2800 x 1800) -->
+  <svg id="editorSvg" width="2800" height="1800" viewBox="0 0 2800 1800">
     <defs>
       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
         <path d="M 20 0 L 0 0 0 20" fill="none" class="grid-pattern" />
       </pattern>
-      <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
-      </marker>
     </defs>
-    <rect width="1000" height="750" fill="url(#grid)" />
+    <rect width="2800" height="1800" fill="url(#grid)" />
     <g id="elementsLayer"></g>
   </svg>
 </div>
@@ -108,6 +151,14 @@
   let mapData = { "A": [], "B": [], "C": [] };
   let selectedId = null;
 
+  // 뷰포트 줌 & 팬 상태
+  let zoom = 1.0;
+  let panX = 40;
+  let panY = 40;
+  let isPanning = false;
+  let panStart = { x: 0, y: 0 };
+
+  // 요소 드래그 & 리사이즈 상태
   let isDragging = false;
   let isResizing = false;
   let activeItem = null;
@@ -115,7 +166,9 @@
 
   window.onload = function() {
     loadCloudConfig();
+    initPanAndZoom();
     initInteractions();
+    applyTransform();
   };
 
   function switchZone(z) {
@@ -147,40 +200,43 @@
 
   function initDefaultLayout() {
     mapData["A"] = [
-      { id: "g1", type: "machinery", name: "기계실", x: 80, y: 220, w: 140, h: 200 },
-      { id: "g2", type: "ev_hall", name: "110동 EV 홀", x: 200, y: 460, w: 130, h: 70 },
-      { id: "s1", type: "spot", name: "O9", x: 80, y: 80, w: 40, h: 48 },
-      { id: "s2", type: "spot", name: "Q9", x: 200, y: 80, w: 40, h: 48 },
-      { id: "s3", type: "spot", name: "O10", x: 80, y: 132, w: 40, h: 48 },
-      { id: "s4", type: "spot", name: "Q10", x: 200, y: 132, w: 40, h: 48 },
-      { id: "s5", type: "spot", name: "R9", x: 450, y: 80, w: 40, h: 48 },
-      { id: "s6", type: "spot", name: "S9", x: 550, y: 80, w: 40, h: 48 },
-      { id: "s7", type: "spot", name: "U9", x: 650, y: 80, w: 40, h: 48 },
-      { id: "s8", type: "spot", name: "O11", x: 230, y: 220, w: 44, h: 40 },
-      { id: "s9", type: "spot", name: "Q11", x: 340, y: 280, w: 40, h: 40 },
-      { id: "s10", type: "spot", name: "R11", x: 450, y: 220, w: 40, h: 40 },
-      { id: "s11", type: "spot", name: "R13", x: 450, y: 350, w: 40, h: 40 }
+      { id: "g1", type: "machinery", name: "기계실", x: 140, y: 380, w: 220, h: 320 },
+      { id: "g2", type: "ev_hall", name: "110동 EV 홀 (1·2호)", x: 320, y: 740, w: 200, h: 100 },
+      { id: "s1", type: "spot", name: "O9", x: 140, y: 140, w: 50, h: 60 },
+      { id: "s2", type: "spot", name: "Q9", x: 320, y: 140, w: 50, h: 60 },
+      { id: "s3", type: "spot", name: "O10", x: 140, y: 210, w: 50, h: 60 },
+      { id: "s4", type: "spot", name: "Q10", x: 320, y: 210, w: 50, h: 60 },
+      { id: "s5", type: "spot", name: "R9", x: 700, y: 140, w: 50, h: 60 },
+      { id: "s6", type: "spot", name: "S9", x: 840, y: 140, w: 50, h: 60 },
+      { id: "s7", type: "spot", name: "U9", x: 980, y: 140, w: 50, h: 60 },
+      { id: "s8", type: "spot", name: "O11", x: 380, y: 380, w: 60, h: 50 },
+      { id: "s9", type: "spot", name: "Q11", x: 540, y: 460, w: 50, h: 50 },
+      { id: "s10", type: "spot", name: "R11", x: 700, y: 380, w: 50, h: 50 },
+      { id: "s11", type: "spot", name: "R13", x: 700, y: 560, w: 50, h: 50 }
     ];
     mapData["B"] = [
-      { id: "b1", type: "spot", name: "M14", x: 120, y: 100, w: 46, h: 44 },
-      { id: "b2", type: "spot", name: "M16", x: 240, y: 100, w: 46, h: 44 }
+      { id: "b1", type: "spot", name: "M14", x: 200, y: 160, w: 60, h: 55 },
+      { id: "b2", type: "spot", name: "M16", x: 380, y: 160, w: 60, h: 55 }
     ];
     mapData["C"] = [
-      { id: "c1", type: "spot", name: "C01", x: 150, y: 100, w: 44, h: 40 },
-      { id: "c2", type: "spot", name: "C02", x: 150, y: 145, w: 44, h: 40 }
+      { id: "c1", type: "spot", name: "C01", x: 220, y: 160, w: 55, h: 50 },
+      { id: "c2", type: "spot", name: "C02", x: 220, y: 220, w: 55, h: 50 }
     ];
   }
 
   function addItem(type) {
     const id = "elem_" + Date.now();
-    let newItem = { id: id, type: type, x: 200, y: 200, w: 44, h: 48, name: "" };
+    // 현재 뷰포트 중앙 근처에 생성
+    const cx = Math.round((-panX + 500) / zoom / 10) * 10;
+    const cy = Math.round((-panY + 400) / zoom / 10) * 10;
+    let newItem = { id: id, type: type, x: Math.max(20, cx), y: Math.max(20, cy), w: 50, h: 60, name: "" };
 
     if (type === "spot") { newItem.name = "P-" + Math.floor(Math.random()*90+10); }
-    else if (type === "machinery") { newItem.name = "기계실"; newItem.w = 120; newItem.h = 160; }
-    else if (type === "ev_hall") { newItem.name = "110동 EV 홀"; newItem.w = 120; newItem.h = 60; }
-    else if (type === "ev_box") { newItem.name = "1호 EV"; newItem.w = 50; newItem.h = 45; }
-    else if (type === "exit") { newItem.name = "출구 ➔"; newItem.w = 70; newItem.h = 35; }
-    else if (type === "wall") { newItem.name = "벽체/라인"; newItem.w = 150; newItem.h = 8; }
+    else if (type === "machinery") { newItem.name = "기계실"; newItem.w = 180; newItem.h = 240; }
+    else if (type === "ev_hall") { newItem.name = "110동 EV 홀"; newItem.w = 180; newItem.h = 90; }
+    else if (type === "ev_box") { newItem.name = "1호 EV"; newItem.w = 60; newItem.h = 55; }
+    else if (type === "exit") { newItem.name = "출구 ➔"; newItem.w = 90; newItem.h = 40; }
+    else if (type === "wall") { newItem.name = "벽체/통로"; newItem.w = 200; newItem.h = 10; }
 
     mapData[currentZone].push(newItem);
     selectedId = id;
@@ -208,13 +264,11 @@
       g.setAttribute("data-id", item.id);
       g.setAttribute("transform", `translate(${item.x}, ${item.y})`);
 
-      // 사각형 배경
       const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
       rect.setAttribute("width", item.w);
       rect.setAttribute("height", item.h);
       rect.setAttribute("rx", item.type === "wall" ? "1" : "4");
 
-      // 타입별 색상
       if (item.type === "spot") {
         rect.setAttribute("fill", "rgba(30, 41, 59, 0.7)");
         rect.setAttribute("stroke", "#ef4444");
@@ -238,12 +292,11 @@
         rect.setAttribute("stroke-width", "1");
       }
 
-      // 텍스트 라벨
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", item.w / 2);
       text.setAttribute("y", item.h / 2 + 4);
       text.setAttribute("text-anchor", "middle");
-      text.setAttribute("font-size", item.type === "machinery" ? "14" : (item.type === "wall" ? "0" : "11"));
+      text.setAttribute("font-size", item.type === "machinery" ? "15" : (item.type === "wall" ? "0" : "12"));
       text.setAttribute("font-weight", "bold");
       text.setAttribute("fill", item.type === "spot" ? "#fca5a5" : "#e2e8f0");
       text.textContent = item.name;
@@ -251,13 +304,12 @@
       g.appendChild(rect);
       g.appendChild(text);
 
-      // 선택 시 우하단 리사이즈 핸들 추가
       if (isSel) {
         const handle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        handle.setAttribute("x", item.w - 5);
-        handle.setAttribute("y", item.h - 5);
-        handle.setAttribute("width", "10");
-        handle.setAttribute("height", "10");
+        handle.setAttribute("x", item.w - 6);
+        handle.setAttribute("y", item.h - 6);
+        handle.setAttribute("width", "12");
+        handle.setAttribute("height", "12");
         handle.setAttribute("class", "resize-handle");
         handle.onmousedown = (e) => startResize(e, item);
         g.appendChild(handle);
@@ -269,51 +321,54 @@
   }
 
   function startDrag(e, item) {
+    if (e.button !== 0) return; // 좌클릭만
     if (e.target.classList.contains("resize-handle")) return;
     e.stopPropagation();
     selectedId = item.id;
     activeItem = item;
     isDragging = true;
 
-    const svg = document.getElementById("editorSvg");
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
-
-    dragOffset.x = loc.x - item.x;
-    dragOffset.y = loc.y - item.y;
+    const svgCoords = clientToSvg(e.clientX, e.clientY);
+    dragOffset.x = svgCoords.x - item.x;
+    dragOffset.y = svgCoords.y - item.y;
     updatePropUI();
     renderElements();
   }
 
   function startResize(e, item) {
+    if (e.button !== 0) return;
     e.stopPropagation();
     selectedId = item.id;
     activeItem = item;
     isResizing = true;
   }
 
-  function initInteractions() {
+  function clientToSvg(cx, cy) {
     const svg = document.getElementById("editorSvg");
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: (cx - rect.left) / zoom,
+      y: (cy - rect.top) / zoom
+    };
+  }
 
+  function initInteractions() {
     window.addEventListener("mousemove", (e) => {
       if (!activeItem) return;
-      const pt = svg.createSVGPoint();
-      pt.x = e.clientX; pt.y = e.clientY;
-      const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const coords = clientToSvg(e.clientX, e.clientY);
 
       if (isDragging) {
-        activeItem.x = Math.round((loc.x - dragOffset.x) / 10) * 10;
-        activeItem.y = Math.round((loc.y - dragOffset.y) / 10) * 10;
+        activeItem.x = Math.round((coords.x - dragOffset.x) / 10) * 10;
+        activeItem.y = Math.round((coords.y - dragOffset.y) / 10) * 10;
       } else if (isResizing) {
-        let newW = Math.round((loc.x - activeItem.x) / 10) * 10;
-        let newH = Math.round((loc.y - activeItem.y) / 10) * 10;
+        let newW = Math.round((coords.x - activeItem.x) / 10) * 10;
+        let newH = Math.round((coords.y - activeItem.y) / 10) * 10;
         if (newW >= 20) activeItem.w = newW;
         if (newH >= 8) activeItem.h = newH;
       }
 
       if (isDragging || isResizing) {
-        const el = svg.querySelector(`[data-id="${activeItem.id}"]`);
+        const el = document.querySelector(`[data-id="${activeItem.id}"]`);
         if (el) {
           el.setAttribute("transform", `translate(${activeItem.x}, ${activeItem.y})`);
           const r = el.querySelector("rect");
@@ -330,6 +385,69 @@
       isResizing = false;
       activeItem = null;
     });
+  }
+
+  /* --- 줌 & 화면 이동 (Pan) 컨트롤 --- */
+  function initPanAndZoom() {
+    const viewport = document.getElementById("viewport");
+
+    // 마우스 휠로 줌인 / 줌아웃
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      setZoom(zoom * zoomFactor, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // 마우스 우클릭 드래그로 화면 이동 (Pan)
+    viewport.addEventListener("contextmenu", (e) => e.preventDefault());
+    viewport.addEventListener("mousedown", (e) => {
+      if (e.button === 2 || e.button === 1) { // 우클릭 또는 휠클릭
+        isPanning = true;
+        panStart.x = e.clientX - panX;
+        panStart.y = e.clientY - panY;
+        viewport.style.cursor = "grabbing";
+      }
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isPanning) return;
+      panX = e.clientX - panStart.x;
+      panY = e.clientY - panStart.y;
+      applyTransform();
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (isPanning) {
+        isPanning = false;
+        viewport.style.cursor = "default";
+      }
+    });
+  }
+
+  function setZoom(newZoom, centerX, centerY) {
+    newZoom = Math.max(0.2, Math.min(2.5, newZoom));
+    const viewport = document.getElementById("viewport");
+    const rect = viewport.getBoundingClientRect();
+    const cx = centerX !== undefined ? (centerX - rect.left) : (rect.width / 2);
+    const cy = centerY !== undefined ? (centerY - rect.top) : (rect.height / 2);
+
+    panX = cx - (cx - panX) * (newZoom / zoom);
+    panY = cy - (cy - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    applyTransform();
+  }
+
+  function applyTransform() {
+    const svg = document.getElementById("editorSvg");
+    svg.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    document.getElementById("zoomLabel").innerText = `${Math.round(zoom * 100)}%`;
+  }
+
+  function zoomIn() { setZoom(zoom * 1.2); }
+  function zoomOut() { setZoom(zoom * 0.8); }
+  function resetZoom() { zoom = 1.0; panX = 40; panY = 40; applyTransform(); }
+  function fitView() {
+    zoom = 0.65; panX = 20; panY = 20; applyTransform();
   }
 
   function updatePropUI() {
