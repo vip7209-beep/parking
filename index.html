@@ -149,7 +149,6 @@
   .modal-header h3 { margin: 0; font-size: 17px; }
   .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 4px; }
 
-  /* 팝업 툴바 & 줌 버튼 */
   .popup-toolbar {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 8px; font-size: 11.5px; color: var(--text-muted);
@@ -160,7 +159,6 @@
     padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;
   }
 
-  /* 팝업 도면 컨테이너: 터치 인터랙션 지원 */
   .detail-popup-viewport {
     width: 100%;
     min-height: 380px;
@@ -170,7 +168,7 @@
     border: 1.5px solid #1e293b;
     position: relative;
     overflow: hidden;
-    touch-action: none; /* 브라우저 기본 스크롤 차단하고 직접 제어 */
+    touch-action: none;
     display: flex; justify-content: center; align-items: center;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
   }
@@ -331,7 +329,7 @@
   </div>
 </div>
 
-<!-- 구역별 상세 평면도 팝업 모달 (핀치 줌 + 토글 버튼 탑재) -->
+<!-- 구역별 상세 평면도 팝업 모달 -->
 <div id="zoneDetailModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -339,7 +337,6 @@
       <button class="modal-close" onclick="closeZonePopup()">✕</button>
     </div>
 
-    <!-- 줌 제어 툴바 -->
     <div class="popup-toolbar">
       <span>💡 두 손가락 핀치 줌 & 드래그 이동</span>
       <div class="zoom-btns">
@@ -417,7 +414,7 @@
   let activePopupZone = "A";
   let mapData = { "A": [], "B": [], "C": [] };
 
-  // 모바일 팝업 줌 & 팬 상태
+  // 모바일 팝업 줌 & 팬
   let popScale = 1.0;
   let popTransX = 0;
   let popTransY = 0;
@@ -445,10 +442,11 @@
     if (!label || label.trim() === "") {
       return { border: "#ef4444", text: "#fca5a5", bg: "rgba(30, 41, 59, 0.7)" };
     }
+    // 식별용 서브태그(#id)가 있으면 제거하고 순수 기둥명으로만 색상 해시 계산
+    const cleanLabel = label.split("#")[0].trim().toUpperCase();
     let hash = 0;
-    const str = label.trim().toUpperCase();
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < cleanLabel.length; i++) {
+      hash = cleanLabel.charCodeAt(i) + ((hash << 5) - hash);
     }
     const h = Math.abs(hash * 137) % 360;
     return {
@@ -481,7 +479,6 @@
     document.getElementById("zoneDetailModal").style.display = "none";
   }
 
-  // 줌 & 이동 초기화
   function resetPopupTransform() {
     popScale = 1.0;
     popTransX = 0;
@@ -489,7 +486,6 @@
     applyPopupTransform();
   }
 
-  // 원클릭 줌 토글 (1.0배 ↔ 1.8배)
   function togglePopupZoom() {
     if (popScale > 1.2) {
       resetPopupTransform();
@@ -504,20 +500,17 @@
     svg.style.transform = `translate(${popTransX}px, ${popTransY}px) scale(${popScale})`;
   }
 
-  // --- 모바일 두 손가락 핀치 줌 & 팬 인터랙션 ---
   function initPopupTouchEvents() {
     const vp = document.getElementById("popupViewport");
 
     vp.addEventListener("touchstart", (e) => {
       hasTouchMoved = false;
       if (e.touches.length === 2) {
-        // 핀치 줌 시작
         isPinching = true;
         isPanning = false;
         startPinchDist = getDistance(e.touches[0], e.touches[1]);
         initialScale = popScale;
       } else if (e.touches.length === 1) {
-        // 드래그(Pan) 시작
         isPanning = true;
         isPinching = false;
         startPanX = e.touches[0].clientX - popTransX;
@@ -555,7 +548,7 @@
     }
   }
 
-  // 도면 렌더링
+  // --- 도면 렌더링 (단 1칸 단독 매칭 로직 적용) ---
   function renderPopupElements(zone) {
     const group = document.getElementById("popupElementsGroup");
     const svg = document.getElementById("popupDetailSvg");
@@ -586,9 +579,35 @@
     svg.removeAttribute("height");
     svg.setAttribute("viewBox", `${cropX} ${cropY} ${cropW} ${cropH}`);
 
+    // 현재 등록된 주차 위치 문자열 분석 (예: "O-10#elem_123" 또는 일반 "O-10")
+    const curPillarRaw = (currentPillar || "").trim();
+    let parkedTargetId = "";
+    let parkedPureName = curPillarRaw;
+
+    if (curPillarRaw.includes("#")) {
+      const parts = curPillarRaw.split("#");
+      parkedPureName = parts[0].trim();
+      parkedTargetId = parts[1].trim();
+    }
+
+    // fallback: 혹시 과거 데이터나 수동 입력이라 #id가 없는 경우, 해당 이름을 가진 첫 번째 칸만 1칸 매칭
+    let fallbackMatchedOnce = false;
+
     items.forEach(it => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      const isCar = (currentZone === zone && currentPillar === it.name && it.type === "spot");
+
+      // 핵심: 딱 1칸만 정확하게 일치하는지 판별
+      let isCar = false;
+      if (currentZone === zone && it.type === "spot") {
+        if (parkedTargetId) {
+          // 1) 고유 ID가 저장되어 있는 경우: ID가 일치하는 단 1칸만 TRUE
+          isCar = (it.id === parkedTargetId);
+        } else if (parkedPureName && it.name === parkedPureName && !fallbackMatchedOnce) {
+          // 2) ID가 없는 기존 레거시 데이터인 경우: 중복 칸 중 단 1칸만 TRUE 처리
+          isCar = true;
+          fallbackMatchedOnce = true;
+        }
+      }
 
       g.setAttribute("class", `spot-node ${isCar ? 'car-parked' : ''}`);
       g.setAttribute("transform", `translate(${it.x}, ${it.y})`);
@@ -640,22 +659,24 @@
 
       if (it.type === "spot") {
         g.onclick = () => {
-          // 화면 이동(드래그) 중 발생한 터치 릴리즈는 클릭으로 처리하지 않음
           if (hasTouchMoved) return;
           closeZonePopup();
-          quickParkAtSpot(zone, it.name);
+          // 클릭한 단독 칸의 ID를 함께 넘겨 원클릭 등록
+          quickParkAtSpot(zone, it.name, it.id);
         };
       }
       group.appendChild(g);
     });
   }
 
-  function quickParkAtSpot(zone, spotName) {
-    if (confirm(`${zone}구역 [${spotName}]에 주차를 등록하시겠습니까?`)) {
+  // 주차칸 터치 시 고유 식별자(#id)를 함께 묶어 저장
+  function quickParkAtSpot(zone, spotName, spotId) {
+    if (confirm(`${zone}구역 [${spotName}] 칸에 주차를 등록하시겠습니까?`)) {
+      const payloadPillar = spotId ? `${spotName}#${spotId}` : spotName;
       const payload = {
         floor: currentFloor,
         zone: zone,
-        pillar: spotName,
+        pillar: payloadPillar,
         updatedBy: selectedUser,
         photo: ""
       };
@@ -683,8 +704,10 @@
     const badgeEl = document.getElementById("display-floor-badge");
     if (badgeEl) badgeEl.innerText = floorShort;
 
+    // 화면 텍스트에는 #id를 숨기고 깨끗한 기둥 라벨(예: "A구역 · O-10")만 표시
+    const cleanDisplayPillar = (data.pillar || "").split("#")[0].trim();
     const posEl = document.getElementById("display-pos");
-    if (posEl) posEl.innerText = (data.zone && data.pillar) ? `${data.zone}구역 · ${data.pillar}` : "미등록";
+    if (posEl) posEl.innerText = (data.zone && cleanDisplayPillar) ? `${data.zone}구역 · ${cleanDisplayPillar}` : "미등록";
 
     const userEl = document.getElementById("display-user");
     if (userEl) userEl.innerText = "등록자: " + (data.updatedBy || "-");
@@ -827,7 +850,8 @@
       alert("등록된 주차 위치가 없습니다.");
       return;
     }
-    const message = `[뽀띠찾기 110동]\n🚗 차 위치: ${currentFloor} ${currentZone}구역 [${currentPillar}]\n💡 출구: ${zoneExitGuides[currentZone]}\n📱 주차 앱 확인하기:\n${window.location.href}`;
+    const cleanPillar = currentPillar.split("#")[0].trim();
+    const message = `[뽀띠찾기 110동]\n🚗 차 위치: ${currentFloor} ${currentZone}구역 [${cleanPillar}]\n💡 출구: ${zoneExitGuides[currentZone]}\n📱 주차 앱 확인하기:\n${window.location.href}`;
     if (navigator.share) {
       navigator.share({ title: '주차 위치 공유', text: message }).catch(() => {});
     } else {
