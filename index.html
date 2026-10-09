@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>뽀띠찾기</title>
 
-<!-- PWA 메타태그 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -136,29 +135,46 @@
   /* 팝업 모달 공통 */
   .modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(6px);
     z-index: 1000; justify-content: center; align-items: flex-end;
   }
   .modal-content {
     background: #131b2e; border: 1px solid #334155; border-radius: 24px 24px 0 0;
-    width: 100%; max-width: 440px; padding: 18px; box-sizing: border-box;
+    width: 100%; max-width: 440px; padding: 16px; box-sizing: border-box;
     animation: modalSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    max-height: 92vh; overflow-y: auto;
+    max-height: 94vh; display: flex; flex-direction: column;
   }
   @keyframes modalSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .modal-header h3 { margin: 0; font-size: 17px; }
-  .modal-close { background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; }
+  .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 4px; }
 
-  /* 팝업 내 반응형 SVG 뷰포트 */
-  .detail-popup-scroll {
-    width: 100%; max-height: 60vh; overflow: auto;
-    background: #090d16; border-radius: 12px; border: 1px solid #1e293b;
-    touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch;
+  /* 팝업 도면 컨테이너: 가로 스크롤 완전 제거 & 가로폭 100% 자동 맞춤 */
+  .detail-popup-viewport {
+    width: 100%;
+    min-height: 380px;
+    max-height: 68vh;
+    background: #090d16;
+    border-radius: 14px;
+    border: 1.5px solid #1e293b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 6px;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
   }
+
+  #popupDetailSvg {
+    width: 100%;
+    height: auto;
+    max-height: 65vh;
+    display: block;
+  }
+
   .spot-node { cursor: pointer; }
   .spot-node.car-parked rect {
-    fill: #2563eb !important; stroke: #38bdf8 !important; stroke-width: 3px !important;
+    fill: #2563eb !important; stroke: #38bdf8 !important; stroke-width: 3.5px !important;
   }
 
   .text-input {
@@ -209,7 +225,7 @@
 
   <!-- 메인 안내도 -->
   <div class="map-card">
-    <div class="map-caption">💡 구역(A, B, C)을 터치하면 상세 지도가 팝업으로 열립니다</div>
+    <div class="map-caption">💡 구역(A, B, C)을 터치하면 상세 지도가 한눈에 열립니다</div>
     <svg viewBox="0 0 400 320" style="width: 100%; height: auto; display: block;">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -305,26 +321,27 @@
   </div>
 </div>
 
-<!-- 1. 구역별 상세 평면도 팝업 모달 (모바일 최적화) -->
+<!-- 구역별 상세 평면도 팝업 모달 (가로 스크롤 없는 전체화면 자동 맞춤) -->
 <div id="zoneDetailModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="popupZoneTitle">A 구역 상세 평면도</h3>
       <button class="modal-close" onclick="closeZonePopup()">✕</button>
     </div>
-    <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">
-      💡 주차한 칸을 터치하면 바로 등록됩니다 (좌우로 스크롤 가능)
+    <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <span>💡 주차한 칸을 터치하면 바로 등록됩니다</span>
+      <span style="font-size:11px; color:#38bdf8;">전체 도면 조망 모드</span>
     </div>
     
-    <div class="detail-popup-scroll">
-      <svg id="popupDetailSvg" style="display: block;">
+    <div class="detail-popup-viewport">
+      <svg id="popupDetailSvg" preserveAspectRatio="xMidYMid meet">
         <g id="popupElementsGroup"></g>
       </svg>
     </div>
   </div>
 </div>
 
-<!-- 2. 주차 정보 수동 등록 모달 -->
+<!-- 주차 정보 수동 등록 모달 -->
 <div id="registerModal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
@@ -340,7 +357,7 @@
     </div>
 
     <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">기둥/칸 번호 입력</div>
-    <input type="text" id="inputPillar" class="text-input" placeholder="예: Q11, R10, M14, 택배함앞">
+    <input type="text" id="inputPillar" class="text-input" placeholder="예: Q-11, R-10, M-14, 택배함앞">
 
     <div class="picker-section-title" style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:8px;">주차 사진 첨부 (선택)</div>
     <label class="camera-btn" id="cameraBtnLabel">
@@ -396,7 +413,6 @@
     fetchParkingData();
   };
 
-  // 모바일에서도 동일한 색상을 자동 추출하는 해시 함수
   function getLabelColor(label) {
     if (!label || label.trim() === "") {
       return { border: "#ef4444", text: "#fca5a5", bg: "rgba(30, 41, 59, 0.7)" };
@@ -436,6 +452,7 @@
     document.getElementById("zoneDetailModal").style.display = "none";
   }
 
+  // 전체 도면 자동 감지 및 스마트 반응형 뷰포트 맞춤
   function renderPopupElements(zone) {
     const group = document.getElementById("popupElementsGroup");
     const svg = document.getElementById("popupDetailSvg");
@@ -445,11 +462,10 @@
     if (items.length === 0) {
       group.innerHTML = `<text x="150" y="100" fill="#94a3b8" font-size="14" text-anchor="middle">등록된 도면이 없습니다. (PC에서 편집 필요)</text>`;
       svg.setAttribute("viewBox", "0 0 300 200");
-      svg.setAttribute("width", "300");
-      svg.setAttribute("height", "200");
       return;
     }
 
+    // 도면에 실제로 배치된 모든 요소의 외곽 경계(Bounding Box) 계산
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     items.forEach(it => {
       minX = Math.min(minX, it.x);
@@ -458,15 +474,17 @@
       maxY = Math.max(maxY, it.y + (it.h || 40));
     });
 
-    const pad = 25;
-    minX = Math.max(0, minX - pad);
-    minY = Math.max(0, minY - pad);
-    const boxW = Math.max(300, (maxX - minX) + pad * 2);
-    const boxH = Math.max(200, (maxY - minY) + pad * 2);
+    // 상하좌우 여백(Padding) 20px 추가
+    const pad = 20;
+    const cropX = Math.max(0, minX - pad);
+    const cropY = Math.max(0, minY - pad);
+    const cropW = (maxX - minX) + (pad * 2);
+    const cropH = (maxY - minY) + (pad * 2);
 
-    svg.setAttribute("viewBox", `${minX} ${minY} ${boxW} ${boxH}`);
-    svg.setAttribute("width", boxW);
-    svg.setAttribute("height", boxH);
+    // 고정 픽셀 width, height를 제거하고 viewBox만 설정하여 모바일 화면폭에 100% 자동 맞춤
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    svg.setAttribute("viewBox", `${cropX} ${cropY} ${cropW} ${cropH}`);
 
     items.forEach(it => {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -489,7 +507,6 @@
           rect.setAttribute("stroke-width", "3");
           textColor = "#fff";
         } else {
-          // 라벨 기반 동일 색상 자동 부여
           const colorSet = getLabelColor(it.name);
           rect.setAttribute("fill", colorSet.bg);
           rect.setAttribute("stroke", colorSet.border);
