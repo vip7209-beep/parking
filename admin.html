@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뽀띠 도면 스튜디오 (프로 에디터)</title>
+<title>뽀띠 도면 스튜디오 (프로 에디터 - 자동 색상 매칭)</title>
 <style>
   :root {
     --bg: #090d16; --panel: #131b2e; --border: #1e293b; --accent: #38bdf8;
@@ -70,7 +70,7 @@
   .grid-pattern { stroke: #141d2e; stroke-width: 0.8; }
   
   .canvas-item { cursor: move; }
-  .canvas-item.selected rect { stroke: #f59e0b !important; stroke-width: 2.5px !important; }
+  .canvas-item.selected rect { stroke: #f59e0b !important; stroke-width: 2.8px !important; }
   .resize-handle { width: 10px; height: 10px; fill: #f59e0b; cursor: nwse-resize; }
 </style>
 </head>
@@ -113,7 +113,6 @@
       </div>
     </div>
     
-    <!-- 가로/세로 회전 및 복제 액션 버튼 -->
     <div class="action-grid">
       <button class="action-btn" onclick="rotateSelected()">🔄 가로↔세로 (R)</button>
       <button class="action-btn" onclick="duplicateSelected()">📋 연속 복제 (Ctrl+D)</button>
@@ -133,8 +132,10 @@
   </div>
 
   <div style="font-size:11px; color:#64748b; line-height:1.5;">
+    💡 <b>자동 컬러 매칭</b><br>
+    동일한 라벨(예: Q-11, O-11 등)을 입력하면 같은 고유 색상으로 자동 변경됩니다.<br><br>
     ⌨️ <b>단축키 안내</b><br>
-    • <b>R</b>: 가로/세로 전환 (W ↔ H)<br>
+    • <b>R</b>: 가로/세로 회전 (W ↔ H)<br>
     • <b>Ctrl + D</b>: 우측으로 자동 간격 복제<br>
     • <b>Delete</b>: 선택 삭제<br>
     • 휠 / 우클릭 드래그: 줌 / 팬 이동
@@ -152,7 +153,6 @@
     <button class="view-btn" onclick="fitView()">전체맞춤</button>
   </div>
 
-  <!-- 대형 작업 캔버스 (2800 x 1800) -->
   <svg id="editorSvg" width="2800" height="1800" viewBox="0 0 2800 1800">
     <defs>
       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -190,6 +190,29 @@
     applyTransform();
   };
 
+  // 라벨 문자열을 기반으로 고유 색상을 자동 산출하는 해시 함수
+  function getLabelColor(label) {
+    if (!label || label.trim() === "") {
+      return { border: "#ef4444", text: "#fca5a5", bg: "rgba(30, 41, 59, 0.7)" };
+    }
+
+    let hash = 0;
+    const str = label.trim().toUpperCase();
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // 360도 색상환에서 고르게 분산 (황금비 오프셋 적용)
+    const h = Math.abs(hash * 137) % 360;
+    
+    // 다크 모드에 최적화된 고대비 네온/파스텔 톤
+    const border = `hsl(${h}, 85%, 62%)`;
+    const text = `hsl(${h}, 95%, 80%)`;
+    const bg = `hsla(${h}, 75%, 45%, 0.16)`;
+
+    return { border, text, bg };
+  }
+
   function switchZone(z) {
     currentZone = z;
     selectedId = null;
@@ -221,25 +244,25 @@
     mapData["A"] = [
       { id: "g1", type: "machinery", name: "기계실", x: 140, y: 380, w: 220, h: 320 },
       { id: "g2", type: "ev_hall", name: "110동 EV 홀 (1·2호)", x: 320, y: 740, w: 200, h: 100 },
-      { id: "s1", type: "spot", name: "O9", x: 140, y: 140, w: 50, h: 60 },
-      { id: "s2", type: "spot", name: "Q9", x: 320, y: 140, w: 50, h: 60 },
-      { id: "s3", type: "spot", name: "O10", x: 140, y: 210, w: 50, h: 60 },
-      { id: "s4", type: "spot", name: "Q10", x: 320, y: 210, w: 50, h: 60 },
-      { id: "s5", type: "spot", name: "R9", x: 700, y: 140, w: 50, h: 60 },
-      { id: "s6", type: "spot", name: "S9", x: 840, y: 140, w: 50, h: 60 },
-      { id: "s7", type: "spot", name: "U9", x: 980, y: 140, w: 50, h: 60 },
-      { id: "s8", type: "spot", name: "O11", x: 380, y: 380, w: 60, h: 50 },
-      { id: "s9", type: "spot", name: "Q11", x: 540, y: 460, w: 50, h: 50 },
-      { id: "s10", type: "spot", name: "R11", x: 700, y: 380, w: 50, h: 50 },
-      { id: "s11", type: "spot", name: "R13", x: 700, y: 560, w: 50, h: 50 }
+      { id: "s1", type: "spot", name: "O-9", x: 140, y: 140, w: 50, h: 60 },
+      { id: "s2", type: "spot", name: "Q-9", x: 320, y: 140, w: 50, h: 60 },
+      { id: "s3", type: "spot", name: "O-10", x: 140, y: 210, w: 50, h: 60 },
+      { id: "s4", type: "spot", name: "Q-10", x: 320, y: 210, w: 50, h: 60 },
+      { id: "s5", type: "spot", name: "R-9", x: 700, y: 140, w: 50, h: 60 },
+      { id: "s6", type: "spot", name: "S-9", x: 840, y: 140, w: 50, h: 60 },
+      { id: "s7", type: "spot", name: "U-9", x: 980, y: 140, w: 50, h: 60 },
+      { id: "s8", type: "spot", name: "O-11", x: 380, y: 380, w: 60, h: 50 },
+      { id: "s9", type: "spot", name: "Q-11", x: 540, y: 460, w: 50, h: 50 },
+      { id: "s10", type: "spot", name: "R-11", x: 700, y: 380, w: 50, h: 50 },
+      { id: "s11", type: "spot", name: "R-13", x: 700, y: 560, w: 50, h: 50 }
     ];
     mapData["B"] = [
-      { id: "b1", type: "spot", name: "M14", x: 200, y: 160, w: 60, h: 55 },
-      { id: "b2", type: "spot", name: "M16", x: 380, y: 160, w: 60, h: 55 }
+      { id: "b1", type: "spot", name: "M-14", x: 200, y: 160, w: 60, h: 55 },
+      { id: "b2", type: "spot", name: "M-16", x: 380, y: 160, w: 60, h: 55 }
     ];
     mapData["C"] = [
-      { id: "c1", type: "spot", name: "C01", x: 220, y: 160, w: 55, h: 50 },
-      { id: "c2", type: "spot", name: "C02", x: 220, y: 220, w: 55, h: 50 }
+      { id: "c1", type: "spot", name: "C-01", x: 220, y: 160, w: 55, h: 50 },
+      { id: "c2", type: "spot", name: "C-02", x: 220, y: 220, w: 55, h: 50 }
     ];
   }
 
@@ -262,7 +285,6 @@
     renderElements();
   }
 
-  // --- 핵심 기능: 가로/세로 전환 (W <-> H 교체) ---
   function rotateSelected() {
     const item = (mapData[currentZone] || []).find(s => s.id === selectedId);
     if (!item) return;
@@ -273,13 +295,11 @@
     renderElements();
   }
 
-  // --- 핵심 기능: 연속 복제 (우측 1칸 간격 자동 배치) ---
   function duplicateSelected() {
     const item = (mapData[currentZone] || []).find(s => s.id === selectedId);
     if (!item) return;
 
     const newId = "elem_" + Date.now();
-    // 가로 폭에 맞추어 우측으로 자동 오프셋 복제
     const offsetX = item.w + 6;
     const clone = {
       ...item,
@@ -295,7 +315,6 @@
     renderElements();
   }
 
-  // 라벨 번호 자동 증가 (예: O9 -> O10 또는 P-12 -> P-13)
   function getNextLabel(name) {
     return name.replace(/\d+$/, (n) => parseInt(n) + 1);
   }
@@ -325,10 +344,15 @@
       rect.setAttribute("height", item.h);
       rect.setAttribute("rx", item.type === "wall" ? "1" : "4");
 
+      let textColor = "#e2e8f0";
+
       if (item.type === "spot") {
-        rect.setAttribute("fill", "rgba(30, 41, 59, 0.7)");
-        rect.setAttribute("stroke", "#ef4444");
-        rect.setAttribute("stroke-width", "1.5");
+        // 라벨 기반 자동 색상 계산
+        const colorSet = getLabelColor(item.name);
+        rect.setAttribute("fill", colorSet.bg);
+        rect.setAttribute("stroke", colorSet.border);
+        rect.setAttribute("stroke-width", "1.6");
+        textColor = colorSet.text;
       } else if (item.type === "wall") {
         rect.setAttribute("fill", "#64748b");
         rect.setAttribute("stroke", "#94a3b8");
@@ -338,6 +362,7 @@
         rect.setAttribute("stroke", "#f59e0b");
         rect.setAttribute("stroke-width", "2");
         rect.setAttribute("stroke-dasharray", "3 2");
+        textColor = "#f59e0b";
       } else if (item.type === "machinery") {
         rect.setAttribute("fill", "#1e293b");
         rect.setAttribute("stroke", "#475569");
@@ -359,7 +384,7 @@
       text.setAttribute("text-anchor", "middle");
       text.setAttribute("font-size", item.type === "machinery" ? "15" : (item.type === "wall" ? "0" : "12"));
       text.setAttribute("font-weight", "bold");
-      text.setAttribute("fill", item.type === "spot" ? "#fca5a5" : (item.type === "pillar_pin" ? "#f59e0b" : "#e2e8f0"));
+      text.setAttribute("fill", textColor);
       text.textContent = item.name;
 
       g.appendChild(rect);
@@ -450,7 +475,6 @@
 
   function initShortcuts() {
     window.addEventListener("keydown", (e) => {
-      // 텍스트 입력 중일 땐 단축키 무시
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
       if (e.key === "r" || e.key === "R" || e.key === "ㄱ") {
@@ -548,7 +572,6 @@
     }
   }
 
-  // --- 로컬 백업 & 복원 기능 ---
   function exportBackup() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(mapData, null, 2));
     const dlAnchor = document.createElement("a");
